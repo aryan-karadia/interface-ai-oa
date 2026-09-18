@@ -6,15 +6,21 @@ export type ControlOwner =
   | "HUMAN_OWNED"
   | "HANDOFF_RECONCILIATION";
 
+export type EscalationReason =
+  | "TARGETING_EXHAUSTED"
+  | "DEAD_END_DETECTED"
+  | "HIGH_RISK_ACTION_CONFIRMATION"
+  | "CAPTCHA_OR_2FA_DETECTED"
+  | "RECOVERY_RETRIES_EXCEEDED"
+  | "GUARDRAIL_BLOCKED"
+  | "UNEXPECTED_STATE";
+
 export interface TakeoverRequest {
   id: string;
+  goal?: string;
   stepId?: string;
-  reason:
-    | "TARGETING_EXHAUSTED"
-    | "HIGH_RISK_ACTION_CONFIRMATION"
-    | "CAPTCHA_OR_2FA_DETECTED"
-    | "RECOVERY_RETRIES_EXCEEDED"
-    | "UNEXPECTED_STATE";
+  stepIndex?: number;
+  reason: EscalationReason;
   message: string;
   currentUrl: string;
   snapshot?: SurfaceSnapshot;

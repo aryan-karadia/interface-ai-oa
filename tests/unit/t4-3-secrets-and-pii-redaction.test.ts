@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "fs";
 import { join, resolve } from "path";
 import { compileDiscoveryEvidence } from "../../src/artifact/compiler";
 import { DiscoveryAgent } from "../../src/discovery/agent";

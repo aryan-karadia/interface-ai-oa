@@ -7,6 +7,7 @@ import {
   type DiscoveryTraceStep,
   type ObservedOutputEvidence,
 } from "../artifact/compiler";
+import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
 import { Redactor } from "../guardrail/redactor";
 import type { Surface } from "../surface/surface.interface";
@@ -45,6 +46,7 @@ export class DiscoveryAgent {
     private surface: Surface,
     private llmClient: LLMClient,
     private guardrail: IGuardrailService,
+    private coordinator?: SessionCoordinator,
   ) {}
 
   async discover(options: DiscoveryOptions): Promise<DiscoveryRunResult> {
@@ -155,6 +157,16 @@ export class DiscoveryAgent {
       }
 
       if (!decision.action) {
+        if (this.coordinator) {
+          await this.coordinator.requestEscalation({
+            reason: "DEAD_END_DETECTED",
+            message:
+              "Discovery stopped: dead-end reached (LLM provided no action and goal was not declared met)",
+            goal: options.goal,
+            stepIndex: currentStep,
+            suggestedAction: "Please provide guidance or manually advance the session",
+          });
+        }
         this.flushEvidence(options.evidenceDir, transcript);
         return {
           success: false,
@@ -175,6 +187,16 @@ export class DiscoveryAgent {
       if (currentActionFingerprint === lastActionFingerprint) {
         consecutiveIdenticalCount++;
         if (consecutiveIdenticalCount >= maxConsecutiveIdentical) {
+          if (this.coordinator) {
+            await this.coordinator.requestEscalation({
+              reason: "DEAD_END_DETECTED",
+              message: `Discovery stopped: repetitive action dead-end detected (${maxConsecutiveIdentical} consecutive identical actions without state change)`,
+              goal: options.goal,
+              stepIndex: currentStep,
+              suggestedAction:
+                "Please navigate past the dead-end or resolve the repetitive condition",
+            });
+          }
           this.flushEvidence(options.evidenceDir, transcript);
           return {
             success: false,
@@ -196,6 +218,15 @@ export class DiscoveryAgent {
         decision.targeting,
       );
       if (!guardrailCheck.allowed) {
+        if (this.coordinator) {
+          await this.coordinator.requestEscalation({
+            reason: "GUARDRAIL_BLOCKED",
+            message: `Guardrail blocked action: ${guardrailCheck.reason}`,
+            goal: options.goal,
+            stepIndex: currentStep,
+            suggestedAction: "Operator review required for guardrail violation",
+          });
+        }
         this.flushEvidence(options.evidenceDir, transcript);
         return {
           success: false,

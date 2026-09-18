@@ -153,12 +153,14 @@ export class ReplayExecutor {
 
             // Attempt human escalation if coordinator available
             if (this.escalation) {
-              const _resolution = await this.escalation.requestEscalation(
-                "TARGETING_EXHAUSTED",
-                `Failed step "${step.id}": ${stepResult.error}`,
-                step.id,
-                "Please resolve the element or modal in the browser window",
-              );
+              const _resolution = await this.escalation.requestEscalation({
+                reason: "TARGETING_EXHAUSTED",
+                message: `Failed step "${step.id}": ${stepResult.error}`,
+                stepId: step.id,
+                stepIndex: i + 1,
+                goal: artifact.name,
+                suggestedAction: "Please resolve the element or modal in the browser window",
+              });
               // Retry once after human handoff
               const retryAfterHandoff = await this.executeStep(
                 artifact,

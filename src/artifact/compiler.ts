@@ -1,3 +1,4 @@
+import { Redactor } from "../guardrail/redactor";
 import type {
   ArtifactSpec,
   BusinessOutcomeDefinition,
@@ -9,7 +10,6 @@ import type {
   StepAssertion,
   TargetingStrategy,
 } from "./artifact.schema";
-import { Redactor } from "../guardrail/redactor";
 import { validateArtifact } from "./artifact.validator";
 
 export interface BuildArtifactOptions {
