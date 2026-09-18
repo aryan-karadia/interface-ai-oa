@@ -21,6 +21,11 @@ export interface GuardrailPolicy {
   allowedPathPrefixes?: string[];
   allowedActionTypes?: string[];
   autoApproveHighRisk?: boolean;
+  highRiskPolicy?: "BLOCK" | "CONFIRM" | "FLAG";
+  operatorConfirmCallback?: (
+    action: StepAction,
+    targeting?: TargetingStrategy,
+  ) => boolean | Promise<boolean>;
   redactionEnabled?: boolean;
   riskThreshold?: RiskLevel;
 }

@@ -13,6 +13,10 @@ const IRREVERSIBLE_KEYWORDS = [
   "pay",
   "order",
   "checkout",
+  "btn-danger",
+  "danger",
+  "reset-password",
+  "revoke",
 ];
 
 /**
@@ -36,6 +40,20 @@ export class RiskClassifier {
       }
     }
 
+    if (targeting?.structural?.css) {
+      const lower = targeting.structural.css.toLowerCase();
+      if (IRREVERSIBLE_KEYWORDS.some((kw) => lower.includes(kw))) {
+        return "HIGH_IRREVERSIBLE";
+      }
+    }
+
+    if (targeting?.structural?.xpath) {
+      const lower = targeting.structural.xpath.toLowerCase();
+      if (IRREVERSIBLE_KEYWORDS.some((kw) => lower.includes(kw))) {
+        return "HIGH_IRREVERSIBLE";
+      }
+    }
+
     // Action types
     switch (action.type) {
       case "click":
@@ -53,5 +71,21 @@ export class RiskClassifier {
       default:
         return "LOW";
     }
+  }
+
+  static isReversible(action: StepAction, targeting?: TargetingStrategy): boolean {
+    const level = RiskClassifier.classify(action, targeting);
+    return level !== "HIGH_IRREVERSIBLE";
+  }
+
+  static getRiskRationale(action: StepAction, targeting?: TargetingStrategy): string {
+    const level = RiskClassifier.classify(action, targeting);
+    if (level === "HIGH_IRREVERSIBLE") {
+      return "Action targets a potentially destructive, financial, or irreversible endpoint that cannot be undone automatically.";
+    }
+    if (level === "MEDIUM") {
+      return "Action modifies active DOM or session state but can be reversed or cleared without persistent database impact.";
+    }
+    return "Action is idempotent, read-only, or strictly non-destructive.";
   }
 }

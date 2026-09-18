@@ -155,9 +155,49 @@ export class GuardrailService implements IGuardrailService {
     }
 
     // 3. High-risk irreversible action gate
-    if (riskLevel === "HIGH_IRREVERSIBLE" && !this.policy.autoApproveHighRisk) {
-      const reason =
-        "Action is classified as HIGH_IRREVERSIBLE and requires human operator approval";
+    if (riskLevel === "HIGH_IRREVERSIBLE") {
+      const mode =
+        this.policy.highRiskPolicy ?? (this.policy.autoApproveHighRisk ? "FLAG" : "BLOCK");
+
+      if (mode === "FLAG") {
+        this.logAudit({
+          actionType: action.type,
+          targetUrl: action.type === "navigate" ? action.url : currentUrl,
+          violationCategory: "HIGH_RISK_UNAUTHORIZED",
+          reason: "Action is classified as HIGH_IRREVERSIBLE and executed under audited mode",
+        });
+        return { allowed: true, riskLevel };
+      }
+
+      if (mode === "CONFIRM") {
+        let approved = false;
+        if (this.policy.operatorConfirmCallback) {
+          const res = this.policy.operatorConfirmCallback(action, targeting);
+          approved = res instanceof Promise ? false : Boolean(res);
+        }
+
+        if (approved) {
+          return { allowed: true, riskLevel };
+        }
+
+        const reason =
+          "Action classified as HIGH_IRREVERSIBLE was denied by operator confirmation policy";
+        this.logAudit({
+          actionType: action.type,
+          targetUrl: action.type === "navigate" ? action.url : currentUrl,
+          violationCategory: "HIGH_RISK_UNAUTHORIZED",
+          reason,
+        });
+        return {
+          allowed: false,
+          riskLevel,
+          violationCategory: "HIGH_RISK_UNAUTHORIZED",
+          reason,
+        };
+      }
+
+      // Default: BLOCK mode
+      const reason = "Action is classified as HIGH_IRREVERSIBLE and blocked by conservative policy";
       this.logAudit({
         actionType: action.type,
         targetUrl: action.type === "navigate" ? action.url : currentUrl,
