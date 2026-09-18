@@ -93,7 +93,40 @@ When automation is halted by unresolvable state, control transfers seamlessly to
 
 ---
 
-## 6. Safety Guardrails & Compliance
-- **Strict Domain Allowlist:** All navigation outside approved domains is blocked before network requests initiate.
-- **Action Risk Classification:** Irreversible actions (`HIGH_IRREVERSIBLE`) require explicit operator authorization.
-- **PII Scrubbing:** Regular expression filters redact SSNs and payment card numbers from telemetry, DOM snapshots, and screenshots.
+## 6. Safety Guardrails & Compliance (ADR-004)
+
+Operating against low-affordance enterprise systems holding sensitive financial and healthcare records requires an uncompromising, defense-in-depth security posture. Guardrails are enforced at both discovery time and deterministic replay time.
+
+### 6.1 Multi-Layered Allowlist Enforcement (T4.1)
+The `GuardrailService` validates every step before execution across three orthogonal dimensions:
+1. **Permitted Domains:** Only explicitly whitelisted hostnames (e.g. `localhost`, `*.enterprise.internal`) are reachable. Cross-origin redirections or external links are intercepted and rejected before network requests dispatch (`FORBIDDEN_DOMAIN`).
+2. **Permitted Route Prefixes:** Navigation is confined to pre-approved application paths (e.g. `["/portal/search", "/portal/members"]`). Administrative, destructive, or debug routes (e.g. `/admin/danger`, `/portal/maintenance`) trigger a `FORBIDDEN_PATH` violation.
+3. **Allowed Action Types:** Step primitives are constrained to an explicit capability allowlist (e.g. `["navigate", "click", "fill", "wait", "extract"]`). Arbitrary script evaluations or untrusted primitives are blocked (`DISALLOWED_ACTION_TYPE`).
+4. **Structured Audit Logging:** Every blocked or flagged action automatically records an immutable `SecurityAuditEntry` capturing timestamp, action type, target URL, violation category, and reason.
+
+### 6.2 Action Risk Taxonomy & Conservative Handling (T4.2 & ADR-004)
+Actions are deterministically classified by `RiskClassifier` into three distinct risk tiers:
+- **`LOW` (Safe / Reversible):** Idempotent or read-only actions (`navigate`, `hover`, `scroll`, `wait`, `extract`).
+- **`MEDIUM` (Moderate / Stateful):** Reversible form inputs and non-destructive buttons (`fill`, `select`, `press`, search/filter clicks).
+- **`HIGH_IRREVERSIBLE` (Risky / Irreversible):** Actions with destructive keywords (`delete`, `remove`, `purge`, `destroy`, `terminate`), financial impact (`transfer`, `wire`, `pay`, `checkout`), or dangerous styling (`btn-danger`).
+
+#### Conservative Handling Modes
+- **`BLOCK` (Autonomous Default - Fail-Closed):** High-risk actions are unconditionally aborted with a typed `HARD_FAILURE` (`HIGH_RISK_UNAUTHORIZED`), protecting production databases during headless runs.
+- **`CONFIRM` (Human-in-the-Loop Gating):** Transfers control to a designated human operator via `SessionCoordinator` approval tokens.
+- **`FLAG` (Audited Execution):** Permits execution only in authorized staging environments with full pre/post snapshot audit logging.
+
+**Demonstrable Replay Defense:** In our proxy target fixture (`fixtures/legacy-portal/index.html`), attempting to click `#ctl00_btnDeleteMember` ("Purge Member Record") is intercepted at pre-action inspection and aborted, preventing database destruction.
+
+### 6.3 Secrets & PII Redaction at Point of Capture (T4.3)
+To ensure compliance with PCI-DSS, HIPAA, and GLBA, credentials, tokens, and PII are never persisted to disk:
+1. **Pattern Scrubbing:** Deep regex filters scrub:
+   - Social Security Numbers (`\b\d{3}-\d{2}-\d{4}\b` -> `[REDACTED_SSN]`)
+   - Credit Cards (`\b(?:\d{4}[- ]?){3}\d{4}\b` -> `[REDACTED_CREDIT_CARD]`)
+   - API Keys & Tokens (`sk-...`, `Bearer ...`, `AIza...` -> `[REDACTED_SECRET]`)
+   - Emails & Phone Numbers (`[REDACTED_EMAIL]`, `[REDACTED_PHONE]`)
+2. **Point of Capture:** Redaction is applied by `Redactor.redactDeep()` at the exact moment evidence is serialized:
+   - Discovery DOM snapshots (`dom-snapshot-step-*.json`)
+   - Discovery transcripts (`transcript.json`)
+   - Synthesized artifacts (`synthesized-artifact.json`)
+   - Replay failure manifests and snapshots (`evidence/replay-error/`)
+3. **Verified Zero PII Retention:** Manual and automated audits (`tests/unit/t4-3-secrets-and-pii-redaction.test.ts`) confirm that customer PII (e.g. Alice Henderson's SSN `987-65-4321` in the legacy fixture table) is scrubbed to `[REDACTED_SSN]` with zero raw PII persisted in any artifact or log.

@@ -9,6 +9,7 @@ import type {
   StepAssertion,
   TargetingStrategy,
 } from "./artifact.schema";
+import { Redactor } from "../guardrail/redactor";
 import { validateArtifact } from "./artifact.validator";
 
 export interface BuildArtifactOptions {
@@ -127,11 +128,21 @@ export function compileDiscoveryEvidence(evidence: DiscoveryRunEvidence): Artifa
 
   if (evidence.declaredInputs) {
     for (const [key, inputEvidence] of Object.entries(evidence.declaredInputs)) {
+      const isSensitiveKey = /password|secret|token|apikey|api_key|credential|private_key/i.test(
+        key,
+      );
+      const sensitive = inputEvidence.sensitive || isSensitiveKey || false;
+      let rawDesc = inputEvidence.description || `Input parameter ${key}`;
+      if (sensitive && inputEvidence.value) {
+        rawDesc = rawDesc.replaceAll(String(inputEvidence.value), "[REDACTED_SECRET]");
+      }
+      const description = Redactor.redact(rawDesc);
+
       inputs[key] = {
         type: inputEvidence.type,
-        description: inputEvidence.description || `Input parameter ${key}`,
+        description,
         required: inputEvidence.required ?? true,
-        sensitive: inputEvidence.sensitive ?? false,
+        sensitive,
       };
       if (inputEvidence.value !== undefined && inputEvidence.value !== "") {
         replacementMap.push({
@@ -186,7 +197,7 @@ export function compileDiscoveryEvidence(evidence: DiscoveryRunEvidence): Artifa
 
       outputs[key] = {
         type: outEvidence.type ?? "string",
-        description: outEvidence.description || `Output ${key}`,
+        description: Redactor.redact(outEvidence.description || `Output ${key}`),
         sourceStepId,
         selector: outEvidence.selector,
         attribute: outEvidence.attribute ?? "innerText",

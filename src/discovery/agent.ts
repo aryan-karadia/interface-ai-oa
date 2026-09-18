@@ -8,6 +8,7 @@ import {
   type ObservedOutputEvidence,
 } from "../artifact/compiler";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
+import { Redactor } from "../guardrail/redactor";
 import type { Surface } from "../surface/surface.interface";
 import type { DiscoveryContext, LLMClient } from "./llm-client.interface";
 
@@ -99,21 +100,15 @@ export class DiscoveryAgent {
       // Capture Step Evidence: DOM snapshot and Screenshot
       if (options.evidenceDir) {
         const domPath = join(options.evidenceDir, `dom-snapshot-step-${currentStep}.json`);
-        writeFileSync(
-          domPath,
-          JSON.stringify(
-            {
-              step: currentStep,
-              url: snapshot.url,
-              title: snapshot.title,
-              visibleText: snapshot.visibleText,
-              accessibilityTree: snapshot.accessibilityTree,
-              timestamp: snapshot.timestamp,
-            },
-            null,
-            2,
-          ),
-        );
+        const sanitizedDom = Redactor.redactDeep({
+          step: currentStep,
+          url: snapshot.url,
+          title: snapshot.title,
+          visibleText: snapshot.visibleText,
+          accessibilityTree: snapshot.accessibilityTree,
+          timestamp: snapshot.timestamp,
+        });
+        writeFileSync(domPath, JSON.stringify(sanitizedDom, null, 2));
 
         if (snapshot.screenshotBase64) {
           const screenshotPath = join(options.evidenceDir, `screenshot-step-${currentStep}.jpeg`);
@@ -260,12 +255,17 @@ export class DiscoveryAgent {
   ): void {
     if (!evidenceDir) return;
     if (transcript) {
-      writeFileSync(join(evidenceDir, "transcript.json"), JSON.stringify(transcript, null, 2));
+      const sanitizedTranscript = Redactor.redactDeep(transcript);
+      writeFileSync(
+        join(evidenceDir, "transcript.json"),
+        JSON.stringify(sanitizedTranscript, null, 2),
+      );
     }
     if (artifact) {
+      const sanitizedArtifact = Redactor.redactDeep(artifact);
       writeFileSync(
         join(evidenceDir, "synthesized-artifact.json"),
-        JSON.stringify(artifact, null, 2),
+        JSON.stringify(sanitizedArtifact, null, 2),
       );
     }
   }

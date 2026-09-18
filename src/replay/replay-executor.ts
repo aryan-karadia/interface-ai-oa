@@ -3,6 +3,7 @@ import { join } from "path";
 import type { ArtifactSpec, ExecutionStep, StepAction } from "../artifact/artifact.schema";
 import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
+import { Redactor } from "../guardrail/redactor";
 import type { Surface } from "../surface/surface.interface";
 import { LocatorEngine } from "./locator-engine";
 import type {
@@ -307,11 +308,11 @@ export class ReplayExecutor {
       }
 
       // 1. run-manifest.json
-      const manifest = {
-        runId,
-        artifactId: artifact.id,
-        artifactVersion: artifact.schemaVersion,
+      const manifest = Redactor.redactDeep({
+        runId: result.telemetry?.runId,
         status: result.status,
+        artifactId: result.artifactId,
+        artifactVersion: result.artifactVersion,
         inputs,
         durationMs:
           "executionDurationMs" in result
@@ -319,7 +320,7 @@ export class ReplayExecutor {
             : (result.telemetry?.totalDurationMs ?? 0),
         startedAt: result.telemetry?.startedAt,
         completedAt: result.telemetry?.completedAt,
-      };
+      });
       writeFileSync(
         join(evidenceDir, "run-manifest.json"),
         JSON.stringify(manifest, null, 2),
@@ -327,9 +328,10 @@ export class ReplayExecutor {
       );
 
       // 2. replay-result.json
+      const sanitizedResult = Redactor.redactDeep(result);
       writeFileSync(
         join(evidenceDir, "replay-result.json"),
-        JSON.stringify(result, null, 2),
+        JSON.stringify(sanitizedResult, null, 2),
         "utf-8",
       );
 
@@ -337,9 +339,10 @@ export class ReplayExecutor {
       const snapshot = await this.surface.perceive().catch(() => null);
       if (snapshot) {
         const { screenshotBase64, ...domData } = snapshot;
+        const sanitizedDom = Redactor.redactDeep(domData);
         writeFileSync(
           join(evidenceDir, "dom-snapshot.json"),
-          JSON.stringify(domData, null, 2),
+          JSON.stringify(sanitizedDom, null, 2),
           "utf-8",
         );
 

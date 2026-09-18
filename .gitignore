@@ -29,3 +29,4 @@ recordings/
 runs/
 *.log
 artifacts/test-repo/
+scratch/
