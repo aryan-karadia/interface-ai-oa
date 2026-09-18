@@ -10,22 +10,22 @@
     "detectedText": "Notice: No active member records found for search criteria."
   },
   "telemetry": {
-    "runId": "replay_1789771201595_6qqvs",
-    "startedAt": "2026-09-18T22:40:01.595Z",
-    "completedAt": "2026-09-18T22:40:01.722Z",
+    "runId": "replay_1789771222813_v5hgb",
+    "startedAt": "2026-09-18T22:40:22.813Z",
+    "completedAt": "2026-09-18T22:40:22.940Z",
     "totalDurationMs": 127,
     "stepMetrics": [
       {
         "stepId": "step_navigate",
         "actionType": "navigate",
-        "durationMs": 39,
+        "durationMs": 40,
         "retries": 0,
         "success": true
       },
       {
         "stepId": "step_fill_member_id",
         "actionType": "fill",
-        "durationMs": 31,
+        "durationMs": 47,
         "targetingTierUsed": "anchor",
         "retries": 0,
         "success": true
@@ -33,7 +33,7 @@
       {
         "stepId": "step_click_search",
         "actionType": "click",
-        "durationMs": 55,
+        "durationMs": 39,
         "targetingTierUsed": "semantic",
         "retries": 0,
         "success": true

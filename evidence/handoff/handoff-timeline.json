@@ -3,35 +3,35 @@
     "fromState": "AUTOMATION_OWNED",
     "toState": "AUTOMATION_OWNED",
     "actor": "system",
-    "timestamp": "2026-09-18T22:40:02.128Z",
+    "timestamp": "2026-09-18T22:40:23.362Z",
     "reason": "Session initialized"
   },
   {
     "fromState": "AUTOMATION_OWNED",
     "toState": "AWAITING_TAKEOVER",
     "actor": "automation",
-    "timestamp": "2026-09-18T22:40:07.204Z",
+    "timestamp": "2026-09-18T22:40:28.438Z",
     "reason": "TARGETING_EXHAUSTED"
   },
   {
     "fromState": "AWAITING_TAKEOVER",
     "toState": "HUMAN_OWNED",
     "actor": "operator",
-    "timestamp": "2026-09-18T22:40:07.204Z",
+    "timestamp": "2026-09-18T22:40:28.438Z",
     "reason": "Operator accepted takeover request"
   },
   {
     "fromState": "HUMAN_OWNED",
     "toState": "HANDOFF_RECONCILIATION",
     "actor": "operator",
-    "timestamp": "2026-09-18T22:40:07.229Z",
+    "timestamp": "2026-09-18T22:40:28.461Z",
     "reason": "Operator dismissed modal popup blocking search button"
   },
   {
     "fromState": "HANDOFF_RECONCILIATION",
     "toState": "AUTOMATION_OWNED",
     "actor": "automation",
-    "timestamp": "2026-09-18T22:40:07.251Z",
+    "timestamp": "2026-09-18T22:40:28.483Z",
     "reason": "Handoff reconciled, resuming automation"
   }
 ]
