@@ -1,0 +1,56 @@
+import type { StepAction, TargetingStrategy } from "../artifact/artifact.schema";
+import type { RiskLevel } from "./guardrail.interface";
+
+const IRREVERSIBLE_KEYWORDS = [
+  "delete",
+  "remove",
+  "drop",
+  "terminate",
+  "transfer",
+  "wire",
+  "purge",
+  "destroy",
+  "pay",
+  "order",
+  "checkout",
+];
+
+/**
+ * Deterministically classifies action risk levels.
+ */
+export class RiskClassifier {
+  static classify(action: StepAction, targeting?: TargetingStrategy): RiskLevel {
+    // Check if targeting mentions irreversible keywords
+    if (targeting?.semantic?.name) {
+      const lower = targeting.semantic.name.toLowerCase();
+      if (IRREVERSIBLE_KEYWORDS.some((kw) => lower.includes(kw))) {
+        return "HIGH_IRREVERSIBLE";
+      }
+    }
+
+    if (targeting?.anchor?.anchorText) {
+      const lower = targeting.anchor.anchorText.toLowerCase();
+      if (IRREVERSIBLE_KEYWORDS.some((kw) => lower.includes(kw))) {
+        return "HIGH_IRREVERSIBLE";
+      }
+    }
+
+    // Action types
+    switch (action.type) {
+      case "click":
+        return "MEDIUM"; // Standard click default
+      case "fill":
+      case "select":
+      case "press":
+        return "MEDIUM";
+      case "navigate":
+      case "wait":
+      case "hover":
+      case "scroll":
+      case "extract":
+        return "LOW";
+      default:
+        return "LOW";
+    }
+  }
+}

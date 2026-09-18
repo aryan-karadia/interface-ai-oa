@@ -1,0 +1,37 @@
+{
+  "name": "interface-ai-oa",
+  "version": "0.1.0",
+  "description": "Computer-Use Automation System: LLM Discovery, Deterministic Replay, Human Escalation, and Safety Guardrails",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/cli/main.ts",
+    "build": "tsc --noEmit",
+    "test": "bun test",
+    "proxy:serve": "bun run fixtures/legacy-portal/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "computer-use",
+    "automation",
+    "replay",
+    "guardrails",
+    "playwright",
+    "gemini"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "bun-types": "^1.4.2",
+    "typescript": "^5.7.3"
+  }
+}

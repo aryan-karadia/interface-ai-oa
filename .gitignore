@@ -1,0 +1,29 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Node / Dependencies
+node_modules/
+dist/
+build/
+.cache/
+
+# Test & Playwright artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Run logs & recordings
+logs/
+recordings/
+*.log
