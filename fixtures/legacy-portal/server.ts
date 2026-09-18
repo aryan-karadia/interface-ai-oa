@@ -14,6 +14,12 @@ export function startLegacyPortalServer(port = PORT) {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
+      if (url.pathname === "/portal/claims-frame") {
+        return new Response(
+          `<!DOCTYPE html><html><body style="font-family:sans-serif;font-size:11px;background:#f5f5f5;margin:4px;"><b>Sub-Queue Status:</b> 3 Claims Pending Approval</body></html>`,
+          { headers: { "Content-Type": "text/html; charset=utf-8" } }
+        );
+      }
       return new Response("Not Found", { status: 404 });
     },
   });

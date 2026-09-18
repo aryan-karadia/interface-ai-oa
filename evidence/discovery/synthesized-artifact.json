@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "artifact_legacy-core-portal_1789767023398",
+  "name": "Automated Look up member 10042 and view account details",
+  "description": "Look up member 10042 and view account details",
+  "createdAt": "2026-09-18T21:30:23.398Z",
+  "updatedAt": "2026-09-18T21:30:23.398Z",
+  "target": {
+    "appId": "legacy-core-portal",
+    "entryUrl": "http://localhost:3088/portal/search",
+    "allowedDomains": [
+      "localhost"
+    ]
+  },
+  "inputs": {},
+  "outputs": {},
+  "steps": [
+    {
+      "id": "step_initial_navigation",
+      "description": "Navigate to initial target URL",
+      "action": {
+        "type": "navigate",
+        "url": "http://localhost:3088/portal/search"
+      }
+    },
+    {
+      "id": "step_1_fill",
+      "description": "I see the Member ID input field adjacent to 'Member ID:'. Let me fill it with member ID 10042.",
+      "action": {
+        "type": "fill",
+        "valueTemplate": "10042"
+      },
+      "targeting": {
+        "anchor": {
+          "anchorText": "Member ID:",
+          "direction": "right",
+          "targetTag": "input"
+        },
+        "structural": {
+          "css": "#ctl00_MainContent_tabSearch_txtMemberId_8912"
+        }
+      }
+    },
+    {
+      "id": "step_2_click",
+      "description": "The member ID is entered. Now I will click the Search button.",
+      "action": {
+        "type": "click"
+      },
+      "targeting": {
+        "semantic": {
+          "name": "Search"
+        },
+        "structural": {
+          "css": "#ctl00_MainContent_btnSearch_329a"
+        }
+      }
+    }
+  ],
+  "checkpoint": {
+    "successCondition": {
+      "assertion": {
+        "type": "url_matches",
+        "expectedValue": "http://localhost:3088/portal/search"
+      },
+      "timeoutMs": 5000
+    },
+    "businessOutcomes": []
+  }
+}

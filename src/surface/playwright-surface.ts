@@ -169,17 +169,30 @@ export class PlaywrightSurface implements Surface {
     if (targeting.semantic) {
       const { role, name, exact } = targeting.semantic;
       try {
-        let locator: Locator;
         if (role) {
-          locator = page.getByRole(role as any, { name, exact });
-        } else if (name) {
-          locator = page.getByLabel(name, { exact });
-        } else {
-          locator = page.locator("body");
+          const roleLocator = page.getByRole(role as any, { name, exact });
+          if (await roleLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+            return new PlaywrightElementHandle("semantic_role_target", roleLocator.first());
+          }
         }
+        if (name) {
+          const labelLocator = page.getByLabel(name, { exact });
+          if (await labelLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+            return new PlaywrightElementHandle("semantic_label_target", labelLocator.first());
+          }
 
-        if (await locator.first().isVisible({ timeout: 1500 }).catch(() => false)) {
-          return new PlaywrightElementHandle("semantic_target", locator.first());
+          // Resilient fallback for unsemantic legacy clickable spans/divs: exact text first
+          const exactTextLocator = page.getByText(name, { exact: true });
+          if (await exactTextLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+            return new PlaywrightElementHandle("semantic_exact_text_target", exactTextLocator.first());
+          }
+
+          if (exact === false) {
+            const textLocator = page.getByText(name, { exact: false });
+            if (await textLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+              return new PlaywrightElementHandle("semantic_text_target", textLocator.first());
+            }
+          }
         }
       } catch {
         // Fall through to next tier

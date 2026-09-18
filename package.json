@@ -10,6 +10,8 @@
     "start": "bun run src/cli/main.ts",
     "build": "tsc --noEmit",
     "test": "bun test",
+    "lint": "bun x @biomejs/biome check src tests fixtures",
+    "format": "bun x @biomejs/biome format --write src tests fixtures",
     "proxy:serve": "bun run fixtures/legacy-portal/server.ts",
     "typecheck": "tsc --noEmit"
   },
