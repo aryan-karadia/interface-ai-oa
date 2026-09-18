@@ -2,7 +2,7 @@
   "status": "BUSINESS_OUTCOME",
   "artifactId": "legacy.portal.lookup_member",
   "artifactVersion": "1.0.0",
-  "executionDurationMs": 126,
+  "executionDurationMs": 128,
   "outcomeCode": "MEMBER_NOT_FOUND",
   "description": "Database query returned no matching active records",
   "evidence": {
@@ -10,15 +10,15 @@
     "detectedText": "Notice: No active member records found for search criteria."
   },
   "telemetry": {
-    "runId": "replay_1789769662448_lt4gs",
-    "startedAt": "2026-09-18T22:14:22.448Z",
-    "completedAt": "2026-09-18T22:14:22.574Z",
-    "totalDurationMs": 126,
+    "runId": "replay_1789769691776_i0gb0",
+    "startedAt": "2026-09-18T22:14:51.776Z",
+    "completedAt": "2026-09-18T22:14:51.904Z",
+    "totalDurationMs": 128,
     "stepMetrics": [
       {
         "stepId": "step_navigate",
         "actionType": "navigate",
-        "durationMs": 39,
+        "durationMs": 41,
         "retries": 0,
         "success": true
       },
@@ -33,7 +33,7 @@
       {
         "stepId": "step_click_search",
         "actionType": "click",
-        "durationMs": 55,
+        "durationMs": 54,
         "targetingTierUsed": "semantic",
         "retries": 0,
         "success": true
