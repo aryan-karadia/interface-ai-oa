@@ -3,8 +3,13 @@ import { join } from "path";
 import type { Surface } from "../surface/surface.interface";
 import type { LLMClient, DiscoveryContext } from "./llm-client.interface";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
-import type { ArtifactSpec, ExecutionStep } from "../artifact/artifact.schema";
-import { buildArtifact } from "../artifact/compiler";
+import type { ArtifactSpec } from "../artifact/artifact.schema";
+import {
+  compileDiscoveryEvidence,
+  type DiscoveryTraceStep,
+  type DeclaredInputEvidence,
+  type ObservedOutputEvidence,
+} from "../artifact/compiler";
 
 export interface DiscoveryOptions {
   goal: string;
@@ -15,6 +20,8 @@ export interface DiscoveryOptions {
   timeoutMs?: number;
   maxConsecutiveIdenticalActions?: number;
   evidenceDir?: string;
+  declaredInputs?: Record<string, DeclaredInputEvidence>;
+  observedOutputs?: Record<string, ObservedOutputEvidence>;
 }
 
 export interface DiscoveryRunResult {
@@ -46,7 +53,7 @@ export class DiscoveryAgent {
     const startTime = Date.now();
 
     const transcript: DiscoveryRunResult["transcript"] = [];
-    const recordedSteps: ExecutionStep[] = [];
+    const recordedSteps: DiscoveryTraceStep[] = [];
     const context: DiscoveryContext = {
       goal: options.goal,
       appId: options.appId,
@@ -63,9 +70,10 @@ export class DiscoveryAgent {
     // Initial navigation
     await this.surface.navigate(options.entryUrl);
     recordedSteps.push({
-      id: "step_initial_navigation",
-      description: `Navigate to initial target URL`,
+      step: 0,
+      thought: `Navigate to initial target URL`,
       action: { type: "navigate", url: options.entryUrl },
+      success: true,
     });
 
     let currentStep = 1;
@@ -125,27 +133,16 @@ export class DiscoveryAgent {
       });
 
       if (decision.goalMet) {
-        // Synthesize canonical artifact
-        const artifact = buildArtifact({
-          id: `artifact_${options.appId}_${Date.now()}`,
-          name: `Automated ${options.goal}`,
-          description: options.goal,
-          target: {
-            appId: options.appId,
-            entryUrl: options.entryUrl,
-            allowedDomains: options.allowedDomains,
-          },
-          steps: recordedSteps,
-          checkpoint: {
-            successCondition: {
-              assertion: {
-                type: "url_matches",
-                expectedValue: options.entryUrl,
-              },
-              timeoutMs: 5000,
-            },
-            businessOutcomes: [],
-          },
+        // Synthesize canonical artifact via decoupled compiler
+        const artifact = compileDiscoveryEvidence({
+          appId: options.appId,
+          entryUrl: options.entryUrl,
+          allowedDomains: options.allowedDomains,
+          goal: options.goal,
+          transcript,
+          recordedSteps,
+          declaredInputs: options.declaredInputs,
+          observedOutputs: options.observedOutputs,
         });
 
         // Write final evidence: transcript and synthesized artifact
@@ -226,12 +223,13 @@ export class DiscoveryAgent {
         };
       }
 
-      // Record canonical step
+      // Record trace step
       recordedSteps.push({
-        id: `step_${currentStep}_${decision.action.type}`,
-        description: decision.thought,
+        step: currentStep,
+        thought: decision.thought,
         action: decision.action,
         targeting: decision.targeting,
+        success: actResult.success,
       });
 
       context.history.push({
