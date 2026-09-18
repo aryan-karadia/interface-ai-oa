@@ -164,9 +164,15 @@ export class MockSurface implements Surface {
 
     // Tier 3: Structural
     if (targeting.structural?.css || targeting.structural?.xpath) {
-      const targetQuery = targeting.structural.css || targeting.structural.xpath;
+      const rawQuery = targeting.structural.css || targeting.structural.xpath || "";
+      const strippedId = rawQuery.replace(/^#/, "");
       for (const el of this.elements.values()) {
-        if (el.id === targetQuery || el.attributes?.["data-testid"] === targetQuery) {
+        if (
+          el.id === rawQuery ||
+          el.id === strippedId ||
+          el.attributes?.["data-testid"] === rawQuery ||
+          el.attributes?.["data-testid"] === strippedId
+        ) {
           return new MockSurfaceElement(el);
         }
       }
