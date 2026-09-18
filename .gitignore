@@ -23,7 +23,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Run logs & recordings
+# Run logs, runs, & recordings
 logs/
 recordings/
+runs/
 *.log
+artifacts/test-repo/

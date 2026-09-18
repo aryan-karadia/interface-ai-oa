@@ -11,6 +11,11 @@ import { startLegacyPortalServer } from "../../fixtures/legacy-portal/server";
 import { DiscoveryAgent } from "../discovery/agent";
 import { GeminiClient } from "../discovery/gemini-client";
 import { MockLLMClient } from "../discovery/mock-llm-client";
+import {
+  ArtifactRepository,
+  diffArtifacts,
+  generateArtifactMarkdown,
+} from "../artifact/repository";
 
 function getArgValue(args: string[], flag: string): string | undefined {
   const idx = args.indexOf(flag);
@@ -60,6 +65,16 @@ Commands:
 
   validate <artifact.json>  Validate an artifact specification against the schema
 
+  list-artifacts            List versioned capabilities in the repository
+                            Options:
+                              --app <appId>       Filter by target application
+
+  inspect <file|appId/id>   Inspect capability contract, inputs, steps, and checkpoints
+                            Options:
+                              --version <semver>  Specify version (defaults to latest)
+
+  diff <file1> <file2>      Show semantic diff between two capability versions
+
   serve-proxy               Start the LegacyCore Portal fixture manually on localhost:3000
 
 Examples:
@@ -97,6 +112,67 @@ Examples:
       report.errors.forEach((e) => console.error(`  - [${e.path}] ${e.message}`));
       process.exit(1);
     }
+    return;
+  }
+
+  if (command === "list-artifacts") {
+    const repo = new ArtifactRepository();
+    const appFilter = getArgValue(args, "--app");
+    const list = await repo.list(appFilter);
+    if (list.length === 0) {
+      console.log("No capabilities registered in artifacts repository.");
+      return;
+    }
+    console.log("===============================================================");
+    console.log("📦 Stored Capabilities (Artifacts Repository)");
+    console.log("===============================================================");
+    for (const cap of list) {
+      console.log(`\n• [${cap.appId}] ${cap.name} (${cap.id})`);
+      console.log(`  Description:    ${cap.description}`);
+      console.log(`  Latest Version: v${cap.latestVersion}`);
+      console.log(`  Versions:       ${cap.versions.map((v) => `v${v}`).join(", ")}`);
+    }
+    console.log("\n===============================================================");
+    return;
+  }
+
+  if (command === "inspect") {
+    const target = args[1];
+    if (!target) {
+      console.error("❌ Error: Target file path or appId/id is required");
+      process.exit(1);
+    }
+    const repo = new ArtifactRepository();
+    let artifact: any;
+    let version = getArgValue(args, "--version");
+
+    if (existsSync(resolve(target))) {
+      artifact = JSON.parse(readFileSync(resolve(target), "utf-8"));
+      version = version || artifact.schemaVersion || "1.0.0";
+    } else if (target.includes("/")) {
+      const [appId, capId] = target.split("/");
+      artifact = await repo.load(appId, capId, version);
+      version = version || "latest";
+    } else {
+      console.error(`❌ Error: Cannot find file or capability "${target}"`);
+      process.exit(1);
+    }
+
+    const md = generateArtifactMarkdown(artifact, version);
+    console.log("\n" + md);
+    return;
+  }
+
+  if (command === "diff") {
+    const fileA = args[1];
+    const fileB = args[2];
+    if (!fileA || !fileB) {
+      console.error("❌ Error: Two artifact file paths are required for diff");
+      process.exit(1);
+    }
+    const a = JSON.parse(readFileSync(resolve(fileA), "utf-8"));
+    const b = JSON.parse(readFileSync(resolve(fileB), "utf-8"));
+    console.log(diffArtifacts(a, b));
     return;
   }
 
@@ -219,6 +295,15 @@ Examples:
         console.log("  - synthesized-artifact.json");
         console.log("  - dom-snapshot-step-*.json");
         console.log("  - screenshot-step-*.jpeg");
+
+        if (result.artifact && args.includes("--save")) {
+          const repo = new ArtifactRepository();
+          const saved = await repo.save(result.artifact);
+          console.log("\n📦 Saved to Artifacts Repository:");
+          console.log(`  Version:  v${saved.version}`);
+          console.log(`  JSON:     ${saved.jsonPath}`);
+          console.log(`  Markdown: ${saved.markdownPath}`);
+        }
       } else {
         console.log("❌ DISCOVERY FAILED OR HALTED");
         console.log("===============================================================");

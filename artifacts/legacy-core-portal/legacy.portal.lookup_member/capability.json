@@ -1,0 +1,11 @@
+{
+  "appId": "legacy-core-portal",
+  "id": "legacy.portal.lookup_member",
+  "name": "Lookup Member Account",
+  "description": "Searches for a member by ID in LegacyCore Portal and verifies account status",
+  "latestVersion": "1.0.0",
+  "versions": [
+    "1.0.0"
+  ],
+  "updatedAt": "2026-09-18T21:37:26.583Z"
+}
