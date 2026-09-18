@@ -103,3 +103,32 @@ A dedicated `SessionControlCoordinator` manages the session lifecycle:
 ### Negative / Trade-offs
 - Additional boilerplate interfaces and adapter layers.
 - Requires mapping Playwright-specific capabilities (like CDP sessions) into the generic `Surface` interface.
+
+---
+
+## Decision Reversals & Architecture Evolution (Post-Sprint 1 Revisions)
+
+As the project advanced through Sprints 2, 3, and 4 against real low-affordance legacy targets, several early Sprint-1 assumptions broke under the realities of enterprise DOM structures. Per our architectural governance principles, we document here every reversed or amended decision and the empirical rationale behind it.
+
+### 1. Reversal: Direct Driver Element Resolvers vs. Polymorphic `SurfaceElement` Handles
+- **Initial Sprint-1 Approach:** The `Surface` abstraction initially exposed Playwright `Locator` objects or direct DOM queries to the execution engine.
+- **Empirical Failure Mode:** Leaked Playwright lifecycle methods into replay logic, making it impossible to run deterministic tests with `MockSurface` without stubbing dozens of Playwright internal methods.
+- **Reversal & Resolution:** Formally decoupled element handles behind the `SurfaceElement` interface (`PlaywrightElementHandle` and `MockSurfaceElement`). The executor interacts only with high-level primitives (`fill`, `click`, `press`, `select`, `getText`, `isVisible`).
+
+### 2. Reversal: Unconstrained `getByText` Fallbacks for Form Controls
+- **Initial Sprint-1 Approach:** When accessibility `getByRole` or `getByLabel` failed, `PlaywrightSurface.locate` attempted a generic `page.getByText(name, { exact: false })` fallback.
+- **Empirical Failure Mode (Encountered in Sprint 3):** Legacy enterprise tables place loose labels in adjacent cells (`<tr><td>Member ID:</td><td><input /></td></tr>`). Because `<input>` elements have no inner text, `getByText("Member ID")` matched the `<td>` text container. Attempting `.fill("10042")` on a non-editable `<td>` threw `Element is not an <input>...`, triggering human intervention escalation and halting replay.
+- **Reversal & Resolution:**
+  1. **Strict Input-Role Prohibition:** For form control roles (`textbox`, `combobox`, `select`, `checkbox`, `radio`), `getByText` fallback is strictly bypassed.
+  2. **Table-Soup Anchor Proximity (Tier 2):** Implemented directional DOM traversal (`xpath=following::${targetTag}[1] | ancestor::tr[1]//${targetTag}`) to locate the adjacent form input in document or row order.
+  3. **4-Tier Targeting Pipeline:** Codified the priority chain in `LocatorEngine` (Tier 1 Semantic ARIA -> Tier 2 Anchor Proximity -> Tier 3 Structural ID/XPath -> Tier 4 Visual Bounding Box).
+
+### 3. Evolution: Binary Pass/Fail vs. 4-Tier Result Contract (ADR-003)
+- **Initial Sprint-1 Approach:** Expected execution to yield either a boolean success or a generic runtime exception.
+- **Empirical Failure Mode:** Searching for a non-existent member (ID `99999`) caused the application to render a legitimate enterprise alert (`Notice: No active member records found`). In a binary model, this was classified as a failure/crash rather than a successful business outcome.
+- **Evolution & Resolution:** Formalized ADR-003 segregating `SUCCESS`, `BUSINESS_OUTCOME` (domain end-states), `RECOVERABLE_RUNTIME_CONDITION` (dismissable transient modals), and `HARD_FAILURE` (guardrail violations, broken selectors).
+
+### 4. Evolution: Log Scrubbing vs. Point-of-Capture Redaction (ADR-004)
+- **Initial Sprint-1 Approach:** Planned PII redaction as an optional post-processing pass over exported run logs.
+- **Empirical Failure Mode:** In regulated environments (HIPAA/GLBA), writing unredacted customer data (such as SSN `987-65-4321` in our proxy target) to disk—even temporarily in intermediate DOM snapshots or transcripts—violates data residency compliance.
+- **Evolution & Resolution:** Redaction was moved to the *point of capture* via `Redactor.redactDeep()`. All DOM snapshots, transcripts, artifacts, and failure manifests are sanitized in memory before serialization to the filesystem.
