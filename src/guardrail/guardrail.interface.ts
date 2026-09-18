@@ -2,9 +2,24 @@ import type { StepAction, TargetingStrategy } from "../artifact/artifact.schema"
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH_IRREVERSIBLE";
 
+export interface SecurityAuditEntry {
+  timestamp: string;
+  actionType: string;
+  targetUrl?: string;
+  violationCategory:
+    | "FORBIDDEN_DOMAIN"
+    | "FORBIDDEN_PATH"
+    | "DISALLOWED_ACTION_TYPE"
+    | "HIGH_RISK_UNAUTHORIZED"
+    | "MALFORMED_URL";
+  reason: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface GuardrailPolicy {
   allowedDomains: string[];
   allowedPathPrefixes?: string[];
+  allowedActionTypes?: string[];
   autoApproveHighRisk?: boolean;
   redactionEnabled?: boolean;
   riskThreshold?: RiskLevel;
@@ -16,6 +31,7 @@ export interface PreActionCheckResult {
   violationCategory?:
     | "FORBIDDEN_DOMAIN"
     | "FORBIDDEN_PATH"
+    | "DISALLOWED_ACTION_TYPE"
     | "HIGH_RISK_UNAUTHORIZED"
     | "MALFORMED_URL";
   reason?: string;
@@ -28,6 +44,9 @@ export interface IGuardrailService {
     targeting?: TargetingStrategy,
   ): PreActionCheckResult;
   checkUrl(url: string): boolean;
+  checkPath(url: string): boolean;
+  getAuditLogs(): SecurityAuditEntry[];
+  clearAuditLogs(): void;
   redactText(text: string): string;
   redactInputs(
     inputs: Record<string, unknown>,
