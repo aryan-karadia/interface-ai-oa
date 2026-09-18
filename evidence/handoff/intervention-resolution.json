@@ -1,0 +1,26 @@
+{
+  "resolution": {
+    "requestId": "esc_1789770428827",
+    "resolvedBy": "operator",
+    "notes": "Operator dismissed modal popup blocking search button",
+    "resumedAt": "2026-09-18T22:27:08.851Z"
+  },
+  "operatorActions": [
+    {
+      "action": {
+        "type": "click"
+      },
+      "targeting": {
+        "structural": {
+          "css": "#ctl00_btnDismissModal"
+        }
+      },
+      "result": {
+        "success": true,
+        "actionType": "click",
+        "durationMs": 24
+      },
+      "timestamp": "2026-09-18T22:27:08.851Z"
+    }
+  ]
+}

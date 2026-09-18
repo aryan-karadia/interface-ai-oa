@@ -88,8 +88,52 @@ Deterministic replay strictly segregates technical crashes from business outcome
 
 ---
 
-## 5. Human Escalation & Session Handoff
-When automation is halted by unresolvable state, control transfers seamlessly to a human operator via the `SessionCoordinator` state machine, allowing manual intervention before control is reconciled.
+## 5. Human Escalation & Session Handoff (ADR-005)
+
+When computer-use automation encounters unresolvable obstacles—such as targeting exhaustion, 2FA/CAPTCHA challenges, repetitive action dead-ends, or high-risk actions requiring explicit sign-off—it must not crash or abort. Aborting discards active authenticated sessions and multi-step state.
+
+We designed and implemented a formal **Session Ownership State Machine** governed by `SessionCoordinator` and `Surface` abstraction seams.
+
+### 5.1 The Four-Stage Ownership State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> AUTOMATION_OWNED : Session Initialized
+    AUTOMATION_OWNED --> AWAITING_TAKEOVER : requestEscalation(reason, context)
+    AWAITING_TAKEOVER --> HUMAN_OWNED : operator accepts takeover
+    AWAITING_TAKEOVER --> AUTOMATION_OWNED : auto-resolve / timeout / cancel
+    HUMAN_OWNED --> HANDOFF_RECONCILIATION : operator returns control
+    HANDOFF_RECONCILIATION --> AUTOMATION_OWNED : surface.resumeFromHuman() & state reconciled
+    AUTOMATION_OWNED --> [*] : Complete
+```
+
+| Lifecycle State | Active Owner | Input Authority | Description |
+| :--- | :--- | :--- | :--- |
+| `AUTOMATION_OWNED` | Automation Engine | Synthetic drivers only | Discovery agent or replay executor dispatches actions autonomously. |
+| `AWAITING_TAKEOVER` | Transition Seam | Muted / Frozen | Synthetic inputs halt; structured `TakeoverRequest` is published to listener/operator. |
+| `HUMAN_OWNED` | Human Operator | Mouse & keyboard only | Operator directly operates the live browser session; synthetic automation is inhibited. |
+| `HANDOFF_RECONCILIATION` | Reconciliation Seam | Perception only | Fresh perception snapshot is captured; DOM state and invariants are reconciled before resumption. |
+
+### 5.2 The Three Architectural Seams
+
+1. **The Pause Seam (`surface.pauseForHuman`)**: Synthetic event loops are frozen immediately upon trigger condition. An immutable `TakeoverRequest` payload is published with goal, stepId, stepIndex, current URL, perception snapshot, and operator suggestion.
+2. **The Cede Seam (Live Session Preservation)**: The underlying Playwright Chromium instance, cookies, session storage, and DOM tree remain completely intact. The operator interacts with the same physical browser session without restart.
+3. **The Resume & Reconciliation Seam (`surface.resumeFromHuman`)**: When the human resolves the issue and signals completion, the system transitions through `HANDOFF_RECONCILIATION`. Fresh perception is taken to synchronize DOM state before automation retries or advances.
+
+### 5.3 Live Demonstration & Handoff Evidence (/evidence/handoff/)
+
+The mechanism was demonstrated and verified live against the hostile `LegacyCore Portal` fixture in `tests/integration/t5-3-handoff-evidence.test.ts`:
+1. **Trigger Condition**: An unannounced system maintenance modal (`#ctl00_pnlNoticeModal`) occluded the primary Search button, causing Playwright click attempts to time out with `TARGETING_EXHAUSTED`.
+2. **Automation Pause**: `SessionCoordinator` transitioned from `AUTOMATION_OWNED` to `AWAITING_TAKEOVER`, emitting a structured takeover request.
+3. **Operator Intervention**: `MockOperatorSurface` took over (`HUMAN_OWNED`), clicked the modal close button (`#ctl00_btnDismissModal`), and logged the action.
+4. **Reconciliation & Resumption**: Control was returned (`HANDOFF_RECONCILIATION`), the surface resumed, and `ReplayExecutor` automatically re-attempted the search step, completing with `status: "SUCCESS"` and extracting member Alice M. Henderson ($240.50).
+
+All artifacts from the live handoff session are persisted in `/evidence/handoff/`:
+- `intervention-request.json`: Captured failure reason, goal, step context, and pre-handoff DOM state.
+- `intervention-resolution.json`: Record of operator attribution and the exact click action performed during takeover.
+- `handoff-timeline.json`: Complete audit log of state transitions (`AUTOMATION_OWNED` → `AWAITING_TAKEOVER` → `HUMAN_OWNED` → `HANDOFF_RECONCILIATION` → `AUTOMATION_OWNED`).
+- `dom-snapshot-post-handoff.json`: Point-of-capture redacted DOM snapshot confirming successful post-handoff state with SSN redacted (`[REDACTED_SSN]`).
+- `screenshot-post-handoff.jpeg`: Binary JPEG screenshot captured post-handoff.
 
 ---
 
