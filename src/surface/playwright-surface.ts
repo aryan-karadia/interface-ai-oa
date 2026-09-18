@@ -190,28 +190,45 @@ export class PlaywrightSurface implements Surface {
           }
 
           // Resilient fallback for unsemantic legacy clickable spans/divs: exact text first
-          const exactTextLocator = page.getByText(name, { exact: true });
-          if (
-            await exactTextLocator
-              .first()
-              .isVisible({ timeout: 1000 })
-              .catch(() => false)
-          ) {
-            return new PlaywrightElementHandle(
-              "semantic_exact_text_target",
-              exactTextLocator.first(),
-            );
-          }
+          // ONLY for non-input roles, because input elements (textbox, combobox, etc.) do not have text content
+          // and falling back to getByText would locate the text label/table-cell rather than the form input!
+          const isInputRole =
+            role &&
+            [
+              "textbox",
+              "combobox",
+              "checkbox",
+              "radio",
+              "spinbutton",
+              "searchbox",
+              "slider",
+              "switch",
+            ].includes(role.toLowerCase());
 
-          if (exact === false) {
-            const textLocator = page.getByText(name, { exact: false });
+          if (!isInputRole) {
+            const exactTextLocator = page.getByText(name, { exact: true });
             if (
-              await textLocator
+              await exactTextLocator
                 .first()
                 .isVisible({ timeout: 1000 })
                 .catch(() => false)
             ) {
-              return new PlaywrightElementHandle("semantic_text_target", textLocator.first());
+              return new PlaywrightElementHandle(
+                "semantic_exact_text_target",
+                exactTextLocator.first(),
+              );
+            }
+
+            if (exact === false) {
+              const textLocator = page.getByText(name, { exact: false });
+              if (
+                await textLocator
+                  .first()
+                  .isVisible({ timeout: 1000 })
+                  .catch(() => false)
+              ) {
+                return new PlaywrightElementHandle("semantic_text_target", textLocator.first());
+              }
             }
           }
         }
@@ -227,12 +244,18 @@ export class PlaywrightSurface implements Surface {
         // Find text node then locate adjacent target tag (e.g. input)
         const anchorLocator = page.locator(`text=${anchorText}`).first();
         if (await anchorLocator.isVisible({ timeout: 1000 }).catch(() => false)) {
-          // Check sibling or parent container
-          const target = anchorLocator
-            .locator(`xpath=following-sibling::${targetTag} | ..//${targetTag}`)
-            .first();
-          if (await target.isVisible({ timeout: 1000 }).catch(() => false)) {
-            return new PlaywrightElementHandle("anchor_target", target);
+          if (targetTag) {
+            // Check following element in document order, parent row descendants, sibling, or parent container
+            const target = anchorLocator
+              .locator(
+                `xpath=following::${targetTag}[1] | ancestor::tr[1]//${targetTag} | following-sibling::${targetTag} | ..//${targetTag}`,
+              )
+              .first();
+            if (await target.isVisible({ timeout: 1000 }).catch(() => false)) {
+              return new PlaywrightElementHandle("anchor_target", target);
+            }
+          } else {
+            return new PlaywrightElementHandle("anchor_target", anchorLocator);
           }
         }
       } catch {

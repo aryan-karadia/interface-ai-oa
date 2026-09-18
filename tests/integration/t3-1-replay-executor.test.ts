@@ -1,18 +1,18 @@
-import { describe, expect, test, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { startLegacyPortalServer } from "../../fixtures/legacy-portal/server";
-import { PlaywrightSurface } from "../../src/surface/playwright-surface";
+import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
 import { GuardrailService } from "../../src/guardrail/guardrail.service";
 import { ReplayExecutor } from "../../src/replay/replay-executor";
 import { MockSurface } from "../../src/surface/mock-surface";
-import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
+import { PlaywrightSurface } from "../../src/surface/playwright-surface";
 
 describe("T3.1: Deterministic Replay Executor (Zero LLM)", () => {
   const rootDir = resolve(import.meta.dir, "../..");
   const artifactPath = resolve(
     rootDir,
-    "artifacts/legacy-core-portal/legacy.portal.lookup_member/v1.0.0.json"
+    "artifacts/legacy-core-portal/legacy.portal.lookup_member/v1.0.0.json",
   );
 
   test("unit: replays steps deterministically with input interpolation and output extraction", async () => {
@@ -116,10 +116,12 @@ describe("T3.1: Deterministic Replay Executor (Zero LLM)", () => {
         const fillStep = result.telemetry.stepMetrics.find((s) => s.actionType === "fill");
         expect(fillStep).toBeDefined();
         expect(fillStep?.success).toBe(true);
+        expect(fillStep?.targetingTierUsed).toBe("anchor");
 
         const clickStep = result.telemetry.stepMetrics.find((s) => s.actionType === "click");
         expect(clickStep).toBeDefined();
         expect(clickStep?.success).toBe(true);
+        expect(clickStep?.targetingTierUsed).toBe("semantic");
       }
     });
   });
