@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.0.0",
-  "id": "artifact_legacy-core-portal_1789767507924",
+  "id": "artifact_legacy-core-portal_1789768535294",
   "name": "Automated Look up member 10042 and view account details",
   "description": "Look up member 10042 and view account details",
-  "createdAt": "2026-09-18T21:38:27.924Z",
-  "updatedAt": "2026-09-18T21:38:27.924Z",
+  "createdAt": "2026-09-18T21:55:35.294Z",
+  "updatedAt": "2026-09-18T21:55:35.294Z",
   "target": {
     "appId": "legacy-core-portal",
     "entryUrl": "http://localhost:3088/portal/search",

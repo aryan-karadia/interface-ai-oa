@@ -379,8 +379,10 @@ Examples:
 
     const executor = new ReplayExecutor(surface, guardrail, coordinator);
 
+    const evidenceDir = getArgValue(args, "--evidence");
+
     try {
-      const result = await executor.execute(artifact, { inputs });
+      const result = await executor.execute(artifact, { inputs, evidenceDir });
       console.log("\n===============================================================");
       console.log(` Replay Result Status: ${result.status}`);
       console.log("===============================================================");

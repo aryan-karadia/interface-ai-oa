@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { join } from "path";
 import type { ArtifactSpec, ExecutionStep, StepAction } from "../artifact/artifact.schema";
 import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
@@ -14,6 +16,7 @@ export interface ReplayOptions {
   inputs?: Record<string, unknown>;
   timeoutMs?: number;
   stopOnRecoverable?: boolean;
+  evidenceDir?: string;
 }
 
 /**
@@ -34,22 +37,78 @@ export class ReplayExecutor {
     const stepMetrics: StepTelemetry[] = [];
     const extractedOutputs: Record<string, unknown> = {};
 
+    const finish = async (result: ReplayResult): Promise<ReplayResult> => {
+      if (options.evidenceDir) {
+        await this.flushEvidence(options.evidenceDir, runId, artifact, resolvedInputs, result);
+      }
+      return result;
+    };
+
     // 1. Validate & Interpolate Input Parameters
     const resolvedInputs: Record<string, unknown> = { ...(options.inputs ?? {}) };
     for (const [key, def] of Object.entries(artifact.inputs ?? {})) {
-      if (resolvedInputs[key] === undefined) {
+      let val = resolvedInputs[key];
+      if (val === undefined) {
         if (def.default !== undefined) {
-          resolvedInputs[key] = def.default;
+          val = def.default;
+          resolvedInputs[key] = val;
         } else if (def.required) {
-          return this.createHardFailure(
-            artifact,
-            runId,
-            startedAt,
-            startTime,
-            stepMetrics,
-            "SCHEMA_MISMATCH",
-            `Missing required input parameter: "${key}"`,
+          return finish(
+            this.createHardFailure(
+              artifact,
+              runId,
+              startedAt,
+              startTime,
+              stepMetrics,
+              "SCHEMA_MISMATCH",
+              `Missing required input parameter: "${key}"`,
+            )
           );
+        }
+      }
+
+      if (val !== undefined) {
+        if (def.type === "number" && typeof val !== "number") {
+          return finish(
+            this.createHardFailure(
+              artifact,
+              runId,
+              startedAt,
+              startTime,
+              stepMetrics,
+              "SCHEMA_MISMATCH",
+              `Input parameter "${key}" expected type "number", received "${typeof val}"`,
+            )
+          );
+        }
+        if (def.type === "boolean" && typeof val !== "boolean") {
+          return finish(
+            this.createHardFailure(
+              artifact,
+              runId,
+              startedAt,
+              startTime,
+              stepMetrics,
+              "SCHEMA_MISMATCH",
+              `Input parameter "${key}" expected type "boolean", received "${typeof val}"`,
+            )
+          );
+        }
+        if (def.validationRegex) {
+          const regex = new RegExp(def.validationRegex);
+          if (!regex.test(String(val))) {
+            return finish(
+              this.createHardFailure(
+                artifact,
+                runId,
+                startedAt,
+                startTime,
+                stepMetrics,
+                "SCHEMA_MISMATCH",
+                `Input parameter "${key}" failed validationRegex: ${def.validationRegex}`,
+              )
+            );
+          }
         }
       }
     }
@@ -62,21 +121,23 @@ export class ReplayExecutor {
 
         if (stepResult.status !== "STEP_SUCCESS") {
           if (stepResult.status === "GUARDRAIL_VIOLATION") {
-            return this.createHardFailure(
-              artifact,
-              runId,
-              startedAt,
-              startTime,
-              stepMetrics,
-              "GUARDRAIL_VIOLATION",
-              stepResult.error || "Guardrail violation blocked execution",
-              step.id,
+            return finish(
+              this.createHardFailure(
+                artifact,
+                runId,
+                startedAt,
+                startTime,
+                stepMetrics,
+                "GUARDRAIL_VIOLATION",
+                stepResult.error || "Guardrail violation blocked execution",
+                step.id,
+              )
             );
           }
 
           if (stepResult.status === "RECOVERABLE") {
             if (options.stopOnRecoverable) {
-              return {
+              return finish({
                 status: "RECOVERABLE_RUNTIME_CONDITION",
                 artifactId: artifact.id,
                 artifactVersion: artifact.schemaVersion,
@@ -86,7 +147,7 @@ export class ReplayExecutor {
                 reason: "ELEMENT_OCCLUDED",
                 suggestedAction: "DISMISS_OVERLAY_AND_RETRY",
                 telemetry: this.createTelemetry(runId, startedAt, startTime, stepMetrics),
-              };
+              });
             }
 
             // Attempt human escalation if coordinator available
@@ -105,41 +166,47 @@ export class ReplayExecutor {
                 stepMetrics,
               );
               if (retryAfterHandoff.status !== "STEP_SUCCESS") {
-                return this.createHardFailure(
+                return finish(
+                  this.createHardFailure(
+                    artifact,
+                    runId,
+                    startedAt,
+                    startTime,
+                    stepMetrics,
+                    "TARGETING_EXHAUSTED",
+                    `Step "${step.id}" failed after operator handoff: ${retryAfterHandoff.error}`,
+                    step.id,
+                  )
+                );
+              }
+            } else {
+              return finish(
+                this.createHardFailure(
                   artifact,
                   runId,
                   startedAt,
                   startTime,
                   stepMetrics,
                   "TARGETING_EXHAUSTED",
-                  `Step "${step.id}" failed after operator handoff: ${retryAfterHandoff.error}`,
+                  `Targeting exhausted on step "${step.id}": ${stepResult.error}`,
                   step.id,
-                );
-              }
-            } else {
-              return this.createHardFailure(
-                artifact,
-                runId,
-                startedAt,
-                startTime,
-                stepMetrics,
-                "TARGETING_EXHAUSTED",
-                `Targeting exhausted on step "${step.id}": ${stepResult.error}`,
-                step.id,
+                )
               );
             }
           }
 
           if (stepResult.status === "FATAL") {
-            return this.createHardFailure(
-              artifact,
-              runId,
-              startedAt,
-              startTime,
-              stepMetrics,
-              "UNHANDLED_EXCEPTION",
-              stepResult.error || "Fatal step failure",
-              step.id,
+            return finish(
+              this.createHardFailure(
+                artifact,
+                runId,
+                startedAt,
+                startTime,
+                stepMetrics,
+                "UNHANDLED_EXCEPTION",
+                stepResult.error || "Fatal step failure",
+                step.id,
+              )
             );
           }
         }
@@ -157,7 +224,7 @@ export class ReplayExecutor {
       const checkpointResult = await this.evaluateCheckpoint(artifact, resolvedInputs);
 
       if (checkpointResult.type === "BUSINESS_OUTCOME") {
-        return {
+        return finish({
           status: "BUSINESS_OUTCOME",
           artifactId: artifact.id,
           artifactVersion: artifact.schemaVersion,
@@ -166,7 +233,7 @@ export class ReplayExecutor {
           description: checkpointResult.description,
           evidence: checkpointResult.evidence,
           telemetry: this.createTelemetry(runId, startedAt, startTime, stepMetrics),
-        };
+        });
       }
 
       if (checkpointResult.type === "SUCCESS") {
@@ -184,7 +251,7 @@ export class ReplayExecutor {
           }
         }
 
-        return {
+        return finish({
           status: "SUCCESS",
           artifactId: artifact.id,
           artifactVersion: artifact.schemaVersion,
@@ -196,30 +263,95 @@ export class ReplayExecutor {
             timestamp: new Date().toISOString(),
           },
           telemetry: this.createTelemetry(runId, startedAt, startTime, stepMetrics),
-        };
+        });
       }
 
       // If checkpoint failed both success and known business outcomes
-      return this.createHardFailure(
-        artifact,
-        runId,
-        startedAt,
-        startTime,
-        stepMetrics,
-        "TARGETING_EXHAUSTED",
-        "Neither success checkpoint condition nor any registered business outcome was satisfied",
+      return finish(
+        this.createHardFailure(
+          artifact,
+          runId,
+          startedAt,
+          startTime,
+          stepMetrics,
+          "TARGETING_EXHAUSTED",
+          "Neither success checkpoint condition nor any registered business outcome was satisfied",
+        )
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return this.createHardFailure(
-        artifact,
-        runId,
-        startedAt,
-        startTime,
-        stepMetrics,
-        "UNHANDLED_EXCEPTION",
-        message,
+      return finish(
+        this.createHardFailure(
+          artifact,
+          runId,
+          startedAt,
+          startTime,
+          stepMetrics,
+          "UNHANDLED_EXCEPTION",
+          message,
+        )
       );
+    }
+  }
+
+  private async flushEvidence(
+    evidenceDir: string,
+    runId: string,
+    artifact: ArtifactSpec,
+    inputs: Record<string, unknown>,
+    result: ReplayResult,
+  ): Promise<void> {
+    try {
+      if (!existsSync(evidenceDir)) {
+        mkdirSync(evidenceDir, { recursive: true });
+      }
+
+      // 1. run-manifest.json
+      const manifest = {
+        runId,
+        artifactId: artifact.id,
+        artifactVersion: artifact.schemaVersion,
+        status: result.status,
+        inputs,
+        durationMs:
+          "executionDurationMs" in result
+            ? result.executionDurationMs
+            : (result.telemetry?.totalDurationMs ?? 0),
+        startedAt: result.telemetry?.startedAt,
+        completedAt: result.telemetry?.completedAt,
+      };
+      writeFileSync(
+        join(evidenceDir, "run-manifest.json"),
+        JSON.stringify(manifest, null, 2),
+        "utf-8",
+      );
+
+      // 2. replay-result.json
+      writeFileSync(
+        join(evidenceDir, "replay-result.json"),
+        JSON.stringify(result, null, 2),
+        "utf-8",
+      );
+
+      // 3. dom-snapshot.json and screenshot-failure.jpeg
+      const snapshot = await this.surface.perceive().catch(() => null);
+      if (snapshot) {
+        const { screenshotBase64, ...domData } = snapshot;
+        writeFileSync(
+          join(evidenceDir, "dom-snapshot.json"),
+          JSON.stringify(domData, null, 2),
+          "utf-8",
+        );
+
+        if (screenshotBase64) {
+          writeFileSync(
+            join(evidenceDir, "screenshot-failure.jpeg"),
+            Buffer.from(screenshotBase64, "base64"),
+          );
+        }
+      }
+    } catch {
+      // Best-effort evidence capture
     }
   }
 

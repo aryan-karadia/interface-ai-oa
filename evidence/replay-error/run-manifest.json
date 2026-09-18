@@ -1,0 +1,12 @@
+{
+  "runId": "replay_1789768535384_izs9y",
+  "artifactId": "legacy.portal.lookup_member",
+  "artifactVersion": "1.0.0",
+  "status": "BUSINESS_OUTCOME",
+  "inputs": {
+    "memberId": "99999"
+  },
+  "durationMs": 127,
+  "startedAt": "2026-09-18T21:55:35.384Z",
+  "completedAt": "2026-09-18T21:55:35.511Z"
+}
