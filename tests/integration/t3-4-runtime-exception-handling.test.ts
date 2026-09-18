@@ -1,18 +1,18 @@
-import { describe, expect, test, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, statSync } from "fs";
 import { resolve } from "path";
 import { startLegacyPortalServer } from "../../fixtures/legacy-portal/server";
-import { PlaywrightSurface } from "../../src/surface/playwright-surface";
+import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
 import { GuardrailService } from "../../src/guardrail/guardrail.service";
 import { ReplayExecutor } from "../../src/replay/replay-executor";
 import { MockSurface } from "../../src/surface/mock-surface";
-import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
+import { PlaywrightSurface } from "../../src/surface/playwright-surface";
 
 describe("T3.4: Runtime Exception Handling & Evidence Capture", () => {
   const rootDir = resolve(import.meta.dir, "../..");
   const artifactPath = resolve(
     rootDir,
-    "artifacts/legacy-core-portal/legacy.portal.lookup_member/v1.0.0.json"
+    "artifacts/legacy-core-portal/legacy.portal.lookup_member/v1.0.0.json",
   );
   const evidenceDir = resolve(rootDir, "evidence/replay-error");
 

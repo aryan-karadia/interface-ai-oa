@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
-import { MockSurface } from "../../src/surface/mock-surface";
-import { LocatorEngine } from "../../src/replay/locator-engine";
 import type { TargetingStrategy } from "../../src/artifact/artifact.schema";
+import { LocatorEngine } from "../../src/replay/locator-engine";
+import { MockSurface } from "../../src/surface/mock-surface";
 
 describe("T3.2: Locator/Targeting Robustness Strategy", () => {
   const rootDir = resolve(import.meta.dir, "../..");

@@ -62,7 +62,7 @@ export class ReplayExecutor {
               stepMetrics,
               "SCHEMA_MISMATCH",
               `Missing required input parameter: "${key}"`,
-            )
+            ),
           );
         }
       }
@@ -78,7 +78,7 @@ export class ReplayExecutor {
               stepMetrics,
               "SCHEMA_MISMATCH",
               `Input parameter "${key}" expected type "number", received "${typeof val}"`,
-            )
+            ),
           );
         }
         if (def.type === "boolean" && typeof val !== "boolean") {
@@ -91,7 +91,7 @@ export class ReplayExecutor {
               stepMetrics,
               "SCHEMA_MISMATCH",
               `Input parameter "${key}" expected type "boolean", received "${typeof val}"`,
-            )
+            ),
           );
         }
         if (def.validationRegex) {
@@ -106,7 +106,7 @@ export class ReplayExecutor {
                 stepMetrics,
                 "SCHEMA_MISMATCH",
                 `Input parameter "${key}" failed validationRegex: ${def.validationRegex}`,
-              )
+              ),
             );
           }
         }
@@ -131,7 +131,7 @@ export class ReplayExecutor {
                 "GUARDRAIL_VIOLATION",
                 stepResult.error || "Guardrail violation blocked execution",
                 step.id,
-              )
+              ),
             );
           }
 
@@ -176,7 +176,7 @@ export class ReplayExecutor {
                     "TARGETING_EXHAUSTED",
                     `Step "${step.id}" failed after operator handoff: ${retryAfterHandoff.error}`,
                     step.id,
-                  )
+                  ),
                 );
               }
             } else {
@@ -190,7 +190,7 @@ export class ReplayExecutor {
                   "TARGETING_EXHAUSTED",
                   `Targeting exhausted on step "${step.id}": ${stepResult.error}`,
                   step.id,
-                )
+                ),
               );
             }
           }
@@ -206,7 +206,7 @@ export class ReplayExecutor {
                 "UNHANDLED_EXCEPTION",
                 stepResult.error || "Fatal step failure",
                 step.id,
-              )
+              ),
             );
           }
         }
@@ -276,7 +276,7 @@ export class ReplayExecutor {
           stepMetrics,
           "TARGETING_EXHAUSTED",
           "Neither success checkpoint condition nor any registered business outcome was satisfied",
-        )
+        ),
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -289,7 +289,7 @@ export class ReplayExecutor {
           stepMetrics,
           "UNHANDLED_EXCEPTION",
           message,
-        )
+        ),
       );
     }
   }

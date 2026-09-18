@@ -2,13 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import {
-  ReplayResultSchema,
-  validateReplayResult,
-  exampleSuccessResult,
   exampleBusinessOutcomeResult,
-  exampleRecoverableResult,
   exampleHardFailureResult,
-  type ReplayResult,
+  exampleRecoverableResult,
+  exampleSuccessResult,
+  validateReplayResult,
 } from "../../src/replay/result-contract";
 
 describe("T3.3: Result Contract & Error Taxonomy (ADR-003)", () => {

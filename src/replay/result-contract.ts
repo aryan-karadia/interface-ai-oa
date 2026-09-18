@@ -17,9 +17,7 @@ export const StepTelemetrySchema = z.object({
   stepId: z.string(),
   actionType: z.string(),
   durationMs: z.number().nonnegative(),
-  targetingTierUsed: z
-    .enum(["semantic", "anchor", "structural", "visualFallback"])
-    .optional(),
+  targetingTierUsed: z.enum(["semantic", "anchor", "structural", "visualFallback"]).optional(),
   retries: z.number().int().nonnegative(),
   success: z.boolean(),
   error: z.string().optional(),
@@ -343,7 +341,8 @@ export const exampleHardFailureResult: ReplayHardFailureResult = {
   artifactVersion: "1.0.0",
   failedStepId: "step_1_navigate",
   category: "GUARDRAIL_VIOLATION",
-  message: "Navigation to external domain https://phishing-site.example.com blocked by security policy",
+  message:
+    "Navigation to external domain https://phishing-site.example.com blocked by security policy",
   diagnosticSnapshotUri: "evidence/runs/run_failure_01/dom-snapshot.json",
   telemetry: {
     runId: "replay_1789768003_pqrst",
