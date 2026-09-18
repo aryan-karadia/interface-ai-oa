@@ -106,7 +106,7 @@ export interface Surface {
   evaluateAssertion(
     type: "element_visible" | "text_contains" | "url_matches",
     expectedValue?: string,
-    targeting?: TargetingStrategy
+    targeting?: TargetingStrategy,
   ): Promise<boolean>;
 
   /**

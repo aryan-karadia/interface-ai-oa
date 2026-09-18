@@ -1,5 +1,9 @@
-import * as readline from "readline";
-import type { EscalationListener, TakeoverRequest, TakeoverResolution } from "./escalation.interface";
+import * as readline from "node:readline";
+import type {
+  EscalationListener,
+  TakeoverRequest,
+  TakeoverResolution,
+} from "./escalation.interface";
 
 export class CliEscalationListener implements EscalationListener {
   async onRequest(request: TakeoverRequest): Promise<TakeoverResolution> {

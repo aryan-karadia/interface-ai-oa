@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { MockSurface } from "../../src/surface/mock-surface";
+import type {
+  EscalationListener,
+  TakeoverRequest,
+  TakeoverResolution,
+} from "../../src/escalation/escalation.interface";
 import { SessionCoordinator } from "../../src/escalation/session-coordinator";
-import type { EscalationListener, TakeoverRequest, TakeoverResolution } from "../../src/escalation/escalation.interface";
+import { MockSurface } from "../../src/surface/mock-surface";
 
 describe("Escalation & Control-Owner State Machine", () => {
   test("manages full lifecycle from automation to human takeover and resumption", async () => {
@@ -31,7 +35,7 @@ describe("Escalation & Control-Owner State Machine", () => {
     const resolution = await coordinator.requestEscalation(
       "TARGETING_EXHAUSTED",
       "Element could not be found after retries",
-      "step_fill_member"
+      "step_fill_member",
     );
 
     expect(listenerCalled).toBe(true);

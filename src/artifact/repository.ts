@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "fs";
-import { join, resolve } from "path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import type { ArtifactSpec } from "./artifact.schema";
 import { validateArtifact } from "./artifact.validator";
 
@@ -15,10 +15,8 @@ export const defaultStorageAdapter: StorageAdapter = {
   existsSync,
   mkdirSync: (p, o) => mkdirSync(p, o),
   writeFileSync: (p, d, enc) => writeFileSync(p, d, (enc || "utf-8") as any),
-  readFileSync: (p, enc) =>
-    readFileSync(p, { encoding: (enc || "utf-8") as BufferEncoding }),
-  readdirSync: (p) =>
-    readdirSync(p).map((e) => (typeof e === "string" ? e : (e as any).name)),
+  readFileSync: (p, enc) => readFileSync(p, { encoding: (enc || "utf-8") as BufferEncoding }),
+  readdirSync: (p) => readdirSync(p).map((e) => (typeof e === "string" ? e : (e as any).name)),
 };
 
 export class MemoryStorageAdapter implements StorageAdapter {
@@ -43,7 +41,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
     const parts = norm.split("/").filter(Boolean);
     let cur = "";
     for (const p of parts) {
-      cur += "/" + p;
+      cur += `/${p}`;
       this.dirs.add(cur);
     }
   }
@@ -67,7 +65,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
 
   readdirSync(path: string): string[] {
     const norm = this.normalize(path).replace(/\/$/, "");
-    const prefix = norm === "/" ? "/" : norm + "/";
+    const prefix = norm === "/" ? "/" : `${norm}/`;
     const entries = new Set<string>();
 
     for (const f of this.files.keys()) {
@@ -138,7 +136,10 @@ export class ArtifactRepository {
    * Saves and strictly validates an ArtifactSpec.
    * Emits formatted JSON and human-reviewable Markdown companion spec.
    */
-  async save(artifact: ArtifactSpec, options: SaveArtifactOptions = {}): Promise<SaveArtifactResult> {
+  async save(
+    artifact: ArtifactSpec,
+    options: SaveArtifactOptions = {},
+  ): Promise<SaveArtifactResult> {
     const report = validateArtifact(artifact);
     if (!report.valid) {
       const errs = report.errors.map((e) => `[${e.path}] ${e.message}`).join(", ");
@@ -194,7 +195,7 @@ export class ArtifactRepository {
     this.storage.writeFileSync(
       join(capabilityDir, "capability.json"),
       JSON.stringify(manifest, null, 2),
-      "utf-8"
+      "utf-8",
     );
 
     return {
@@ -218,7 +219,9 @@ export class ArtifactRepository {
     if (!targetVersion) {
       const manifestPath = join(capabilityDir, "capability.json");
       if (this.storage.existsSync(manifestPath)) {
-        const manifest: CapabilityManifest = JSON.parse(this.storage.readFileSync(manifestPath, "utf-8"));
+        const manifest: CapabilityManifest = JSON.parse(
+          this.storage.readFileSync(manifestPath, "utf-8"),
+        );
         targetVersion = manifest.latestVersion;
       } else {
         const versions = this.getExistingVersions(capabilityDir);
@@ -237,7 +240,9 @@ export class ArtifactRepository {
     const raw = JSON.parse(this.storage.readFileSync(jsonPath, "utf-8"));
     const report = validateArtifact(raw);
     if (!report.valid) {
-      throw new Error(`Saved artifact v${targetVersion} is corrupt: ${JSON.stringify(report.errors)}`);
+      throw new Error(
+        `Saved artifact v${targetVersion} is corrupt: ${JSON.stringify(report.errors)}`,
+      );
     }
 
     return raw as ArtifactSpec;
@@ -262,7 +267,7 @@ export class ArtifactRepository {
         const manifestPath = join(capDir, "capability.json");
         if (this.storage.existsSync(manifestPath)) {
           const manifest: CapabilityManifest = JSON.parse(
-            this.storage.readFileSync(manifestPath, "utf-8")
+            this.storage.readFileSync(manifestPath, "utf-8"),
           );
           results.push({
             appId: manifest.appId,
@@ -337,7 +342,7 @@ export function generateArtifactMarkdown(artifact: ArtifactSpec, version = "1.0.
     lines.push("| :--- | :--- | :--- | :--- | :--- |");
     for (const [key, p] of Object.entries(artifact.inputs || {})) {
       lines.push(
-        `| \`${key}\` | \`${p.type}\` | ${p.required ? "Yes" : "No"} | ${p.sensitive ? "🔒 Yes" : "No"} | ${p.description} |`
+        `| \`${key}\` | \`${p.type}\` | ${p.required ? "Yes" : "No"} | ${p.sensitive ? "🔒 Yes" : "No"} | ${p.description} |`,
       );
     }
   }
@@ -355,7 +360,7 @@ export function generateArtifactMarkdown(artifact: ArtifactSpec, version = "1.0.
     for (const [key, out] of Object.entries(artifact.outputs || {})) {
       const sel = out.selector.structural?.css || out.selector.semantic?.name || "composite";
       lines.push(
-        `| \`${key}\` | \`${out.type}\` | \`${out.sourceStepId}\` | \`${sel}\` | ${out.description} |`
+        `| \`${key}\` | \`${out.type}\` | \`${out.sourceStepId}\` | \`${sel}\` | ${out.description} |`,
       );
     }
   }
@@ -377,17 +382,17 @@ export function generateArtifactMarkdown(artifact: ArtifactSpec, version = "1.0.
       lines.push("- **Targeting Fallback Priority:**");
       if (step.targeting.semantic) {
         lines.push(
-          `  - **Tier 1 (Semantic):** role=\`${step.targeting.semantic.role || "*"}\`, name=\`${step.targeting.semantic.name}\``
+          `  - **Tier 1 (Semantic):** role=\`${step.targeting.semantic.role || "*"}\`, name=\`${step.targeting.semantic.name}\``,
         );
       }
       if (step.targeting.anchor) {
         lines.push(
-          `  - **Tier 2 (Anchor):** text=\`${step.targeting.anchor.anchorText}\`, dir=\`${step.targeting.anchor.direction}\``
+          `  - **Tier 2 (Anchor):** text=\`${step.targeting.anchor.anchorText}\`, dir=\`${step.targeting.anchor.direction}\``,
         );
       }
       if (step.targeting.structural) {
         lines.push(
-          `  - **Tier 3 (Structural):** css=\`${step.targeting.structural.css || ""}\`, xpath=\`${step.targeting.structural.xpath || ""}\``
+          `  - **Tier 3 (Structural):** css=\`${step.targeting.structural.css || ""}\`, xpath=\`${step.targeting.structural.xpath || ""}\``,
         );
       }
       if (step.targeting.visualFallback) {
@@ -401,14 +406,16 @@ export function generateArtifactMarkdown(artifact: ArtifactSpec, version = "1.0.
   lines.push("## Checkpoints & Outcomes");
   lines.push("");
   lines.push(
-    `- **Success Assertion:** \`${artifact.checkpoint.successCondition.assertion.type}\` (timeout: ${artifact.checkpoint.successCondition.timeoutMs ?? 5000}ms)`
+    `- **Success Assertion:** \`${artifact.checkpoint.successCondition.assertion.type}\` (timeout: ${artifact.checkpoint.successCondition.timeoutMs ?? 5000}ms)`,
   );
 
   const outcomes = artifact.checkpoint.businessOutcomes || [];
   if (outcomes.length > 0) {
     lines.push("- **Business Outcomes (Domain Distinctions):**");
     for (const bo of outcomes) {
-      lines.push(`  - \`${bo.code}\`: ${bo.description} (pattern: "${bo.detection.pattern || ""}")`);
+      lines.push(
+        `  - \`${bo.code}\`: ${bo.description} (pattern: "${bo.detection.pattern || ""}")`,
+      );
     }
   }
   lines.push("");
@@ -453,7 +460,11 @@ export function diffArtifacts(a: ArtifactSpec, b: ArtifactSpec): string {
     } else if (sA && !sB) {
       lines.push(`- Step ${i + 1} removed: [${sA.id}] ${sA.description}`);
     } else if (sA && sB) {
-      if (sA.id !== sB.id || sA.action.type !== sB.action.type || sA.description !== sB.description) {
+      if (
+        sA.id !== sB.id ||
+        sA.action.type !== sB.action.type ||
+        sA.description !== sB.description
+      ) {
         lines.push(`~ Step ${i + 1} changed:`);
         lines.push(`    - Old: [${sA.id}] ${sA.description} (${sA.action.type})`);
         lines.push(`    + New: [${sB.id}] ${sB.description} (${sB.action.type})`);

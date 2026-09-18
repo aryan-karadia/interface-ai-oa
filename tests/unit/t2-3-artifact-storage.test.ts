@@ -1,13 +1,12 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { existsSync, readFileSync, rmSync, mkdirSync, readdirSync } from "fs";
-import { resolve } from "path";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
 import {
   ArtifactRepository,
   diffArtifacts,
-  generateArtifactMarkdown,
   MemoryStorageAdapter,
 } from "../../src/artifact/repository";
-import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
 
 describe("T2.3: Artifact Storage & Versioning", () => {
   const rootDir = resolve(import.meta.dir, "../..");

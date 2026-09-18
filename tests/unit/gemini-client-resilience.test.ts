@@ -15,7 +15,9 @@ describe("GeminiClient Transient Resilience & Model Failover", () => {
     const mockGenerate = async () => {
       callCount++;
       if (callCount < 3) {
-        const err = new Error("This model is currently experiencing high demand. Spikes in demand are usually temporary.");
+        const err = new Error(
+          "This model is currently experiencing high demand. Spikes in demand are usually temporary.",
+        );
         (err as any).status = 503;
         throw err;
       }
@@ -56,9 +58,15 @@ describe("GeminiClient Transient Resilience & Model Failover", () => {
     };
 
     const result = await (client as any).generateDecisionInternal(
-      { url: "http://localhost", title: "Test", accessibilityTree: { role: "WebArea" }, visibleText: "", timestamp: "" },
+      {
+        url: "http://localhost",
+        title: "Test",
+        accessibilityTree: { role: "WebArea" },
+        visibleText: "",
+        timestamp: "",
+      },
       { goal: "Test goal", appId: "test", history: [] },
-      mockGenerateForModel
+      mockGenerateForModel,
     );
 
     expect(attemptedModels).toContain("gemini-3.6-flash");

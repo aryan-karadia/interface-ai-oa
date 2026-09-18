@@ -1,21 +1,21 @@
 import "dotenv/config";
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
-import { validateArtifact } from "../artifact/artifact.validator";
-import { ReplayExecutor } from "../replay/replay-executor";
-import { PlaywrightSurface } from "../surface/playwright-surface";
-import { GuardrailService } from "../guardrail/guardrail.service";
-import { SessionCoordinator } from "../escalation/session-coordinator";
-import { CliEscalationListener } from "../escalation/human-prompt";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { startLegacyPortalServer } from "../../fixtures/legacy-portal/server";
-import { DiscoveryAgent } from "../discovery/agent";
-import { GeminiClient } from "../discovery/gemini-client";
-import { MockLLMClient } from "../discovery/mock-llm-client";
+import { validateArtifact } from "../artifact/artifact.validator";
 import {
   ArtifactRepository,
   diffArtifacts,
   generateArtifactMarkdown,
 } from "../artifact/repository";
+import { DiscoveryAgent } from "../discovery/agent";
+import { GeminiClient } from "../discovery/gemini-client";
+import { MockLLMClient } from "../discovery/mock-llm-client";
+import { CliEscalationListener } from "../escalation/human-prompt";
+import { SessionCoordinator } from "../escalation/session-coordinator";
+import { GuardrailService } from "../guardrail/guardrail.service";
+import { ReplayExecutor } from "../replay/replay-executor";
+import { PlaywrightSurface } from "../surface/playwright-surface";
 
 function getArgValue(args: string[], flag: string): string | undefined {
   const idx = args.indexOf(flag);
@@ -109,7 +109,9 @@ Examples:
       console.log(`✅ Artifact is valid: "${report.artifact?.name}" (ID: ${report.artifact?.id})`);
     } else {
       console.error(`❌ Validation failed with ${report.errors.length} errors:`);
-      report.errors.forEach((e) => console.error(`  - [${e.path}] ${e.message}`));
+      report.errors.forEach((e) => {
+        console.error(`  - [${e.path}] ${e.message}`);
+      });
       process.exit(1);
     }
     return;
@@ -159,7 +161,7 @@ Examples:
     }
 
     const md = generateArtifactMarkdown(artifact, version);
-    console.log("\n" + md);
+    console.log(`\n${md}`);
     return;
   }
 
@@ -180,18 +182,13 @@ Examples:
     const goal =
       getArgValue(args, "--goal") ||
       "Look up member 10042 in the Member Search portal and view account details";
-    const entryUrl =
-      getArgValue(args, "--url") || "http://localhost:3000/portal/search";
+    const entryUrl = getArgValue(args, "--url") || "http://localhost:3000/portal/search";
     const isHeaded = args.includes("--headed");
     const useMock = args.includes("--mock");
     const maxSteps = Number(getArgValue(args, "--max-steps") || 8);
-    const evidenceDir = resolve(
-      getArgValue(args, "--evidence") || "evidence/discovery"
-    );
+    const evidenceDir = resolve(getArgValue(args, "--evidence") || "evidence/discovery");
     const apiKey =
-      getArgValue(args, "--api-key") ||
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY;
+      getArgValue(args, "--api-key") || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
     console.log("===============================================================");
     console.log("🚀 Starting Discovery Run");
@@ -206,7 +203,9 @@ Examples:
     if (entryUrl.includes("localhost:3000") || entryUrl.includes("127.0.0.1:3000")) {
       const running = await isServerRunning(entryUrl);
       if (!running) {
-        console.log("ℹ️  Local portal not detected; automatically starting fixture server on port 3000...");
+        console.log(
+          "ℹ️  Local portal not detected; automatically starting fixture server on port 3000...",
+        );
         autoServer = startLegacyPortalServer(3000);
         await new Promise((r) => setTimeout(r, 300));
       }
@@ -218,7 +217,8 @@ Examples:
       console.log(" Provider:    MockLLMClient (Deterministic planner)");
       llmClient = new MockLLMClient([
         {
-          thought: "I see the Member ID input field adjacent to 'Member ID:'. Let me fill it with member ID 10042.",
+          thought:
+            "I see the Member ID input field adjacent to 'Member ID:'. Let me fill it with member ID 10042.",
           action: { type: "fill", valueTemplate: "10042" },
           targeting: {
             anchor: { anchorText: "Member ID:", direction: "right", targetTag: "input" },
@@ -236,7 +236,8 @@ Examples:
           goalMet: false,
         },
         {
-          thought: "The member record table (#ctl00_gridMemberDetails) is displayed showing Alice Henderson and balance $240.50. The goal is fulfilled.",
+          thought:
+            "The member record table (#ctl00_gridMemberDetails) is displayed showing Alice Henderson and balance $240.50. The goal is fulfilled.",
           goalMet: true,
         },
       ]);
@@ -244,16 +245,15 @@ Examples:
       if (!apiKey) {
         console.error("\n❌ Error: No Gemini API key provided!");
         console.error("Please set GEMINI_API_KEY in your .env file or environment, e.g.:");
-        console.error("  export GEMINI_API_KEY=\"your_gemini_api_key\"");
-        console.error("Or pass --api-key <key>, or run with --mock for an offline demonstration:\n");
+        console.error('  export GEMINI_API_KEY="your_gemini_api_key"');
+        console.error(
+          "Or pass --api-key <key>, or run with --mock for an offline demonstration:\n",
+        );
         console.error("  bun run src/cli/main.ts discover --mock --headed\n");
         if (autoServer) autoServer.stop();
         process.exit(1);
       }
-      const model =
-        getArgValue(args, "--model") ||
-        process.env.GEMINI_MODEL ||
-        "gemini-3.6-flash";
+      const model = getArgValue(args, "--model") || process.env.GEMINI_MODEL || "gemini-3.6-flash";
       console.log(` Provider:    Google Gemini (${model})`);
       llmClient = new GeminiClient({ apiKey, modelName: model });
     }
@@ -287,7 +287,9 @@ Examples:
         console.log(` Artifact ID: ${result.artifact?.id}`);
         console.log("\nExecution Transcript:");
         result.transcript.forEach((t) => {
-          console.log(`  [Step ${t.step}] ${t.action ? `[${t.action.toUpperCase()}] ` : ""}${t.thought}`);
+          console.log(
+            `  [Step ${t.step}] ${t.action ? `[${t.action.toUpperCase()}] ` : ""}${t.thought}`,
+          );
         });
 
         console.log("\n📁 Evidence Captured in:", evidenceDir);
@@ -351,10 +353,15 @@ Examples:
 
     // Auto-start fixture server if targeting localhost:3000 and not running
     let autoServer: ReturnType<typeof startLegacyPortalServer> | null = null;
-    if (artifact.target.entryUrl.includes("localhost:3000") || artifact.target.entryUrl.includes("127.0.0.1:3000")) {
+    if (
+      artifact.target.entryUrl.includes("localhost:3000") ||
+      artifact.target.entryUrl.includes("127.0.0.1:3000")
+    ) {
       const running = await isServerRunning(artifact.target.entryUrl);
       if (!running) {
-        console.log("ℹ️  Local portal not detected; automatically starting fixture server on port 3000...");
+        console.log(
+          "ℹ️  Local portal not detected; automatically starting fixture server on port 3000...",
+        );
         autoServer = startLegacyPortalServer(3000);
         await new Promise((r) => setTimeout(r, 300));
       }

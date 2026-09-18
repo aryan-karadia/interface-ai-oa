@@ -1,11 +1,11 @@
-import type {
-  Surface,
-  SurfaceSnapshot,
-  SurfaceElement,
-  ActionResult,
-  AccessibilityNode,
-} from "./surface.interface";
 import type { StepAction, TargetingStrategy } from "../artifact/artifact.schema";
+import type {
+  AccessibilityNode,
+  ActionResult,
+  Surface,
+  SurfaceElement,
+  SurfaceSnapshot,
+} from "./surface.interface";
 
 export interface MockElementState {
   id: string;
@@ -143,10 +143,7 @@ export class MockSurface implements Surface {
         if (el.visible === false) continue;
         const roleMatches = !role || el.role?.toLowerCase() === role.toLowerCase();
         const nameMatches =
-          !name ||
-          (exact
-            ? el.name === name
-            : el.name?.toLowerCase().includes(name.toLowerCase()));
+          !name || (exact ? el.name === name : el.name?.toLowerCase().includes(name.toLowerCase()));
         if (roleMatches && nameMatches) {
           return new MockSurfaceElement(el);
         }
@@ -242,7 +239,7 @@ export class MockSurface implements Surface {
   async evaluateAssertion(
     type: "element_visible" | "text_contains" | "url_matches",
     expectedValue?: string,
-    targeting?: TargetingStrategy
+    targeting?: TargetingStrategy,
   ): Promise<boolean> {
     if (type === "url_matches") {
       return expectedValue ? this.url.includes(expectedValue) : false;

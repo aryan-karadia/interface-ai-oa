@@ -1,5 +1,5 @@
-import type { LLMClient, AgentDecision, DiscoveryContext } from "./llm-client.interface";
 import type { SurfaceSnapshot } from "../surface/surface.interface";
+import type { AgentDecision, DiscoveryContext, LLMClient } from "./llm-client.interface";
 
 export class MockLLMClient implements LLMClient {
   private cannedDecisions: AgentDecision[] = [];
@@ -16,7 +16,7 @@ export class MockLLMClient implements LLMClient {
 
   async generateDecision(
     _snapshot: SurfaceSnapshot,
-    _context: DiscoveryContext
+    _context: DiscoveryContext,
   ): Promise<AgentDecision> {
     if (this.callIndex < this.cannedDecisions.length) {
       const decision = this.cannedDecisions[this.callIndex++];

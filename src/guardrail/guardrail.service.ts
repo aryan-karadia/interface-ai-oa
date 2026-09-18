@@ -4,8 +4,8 @@ import type {
   IGuardrailService,
   PreActionCheckResult,
 } from "./guardrail.interface";
-import { RiskClassifier } from "./risk-classifier";
 import { Redactor } from "./redactor";
+import { RiskClassifier } from "./risk-classifier";
 
 export class GuardrailService implements IGuardrailService {
   constructor(private policy: GuardrailPolicy) {}
@@ -15,7 +15,8 @@ export class GuardrailService implements IGuardrailService {
       const parsed = new URL(url);
       const hostname = parsed.hostname.toLowerCase();
       const isAllowed = this.policy.allowedDomains.some(
-        (domain) => hostname === domain.toLowerCase() || hostname.endsWith(`.${domain.toLowerCase()}`)
+        (domain) =>
+          hostname === domain.toLowerCase() || hostname.endsWith(`.${domain.toLowerCase()}`),
       );
       if (!isAllowed) return false;
 
@@ -33,7 +34,7 @@ export class GuardrailService implements IGuardrailService {
   checkAction(
     action: StepAction,
     currentUrl: string,
-    targeting?: TargetingStrategy
+    targeting?: TargetingStrategy,
   ): PreActionCheckResult {
     const riskLevel = RiskClassifier.classify(action, targeting);
 
@@ -79,7 +80,7 @@ export class GuardrailService implements IGuardrailService {
 
   redactInputs(
     inputs: Record<string, unknown>,
-    sensitiveKeys: Set<string>
+    sensitiveKeys: Set<string>,
   ): Record<string, unknown> {
     if (this.policy.redactionEnabled === false) return inputs;
     return Redactor.redactInputs(inputs, sensitiveKeys);

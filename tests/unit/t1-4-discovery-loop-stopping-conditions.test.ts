@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { MockSurface } from "../../src/surface/mock-surface";
+import { DiscoveryAgent } from "../../src/discovery/agent";
 import { MockLLMClient } from "../../src/discovery/mock-llm-client";
 import { GuardrailService } from "../../src/guardrail/guardrail.service";
-import { DiscoveryAgent } from "../../src/discovery/agent";
+import { MockSurface } from "../../src/surface/mock-surface";
 
 describe("T1.4: LLM observe->decide->act loop stopping conditions", () => {
   const guardrail = new GuardrailService({ allowedDomains: ["localhost"] });

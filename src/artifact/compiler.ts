@@ -1,13 +1,13 @@
 import type {
   ArtifactSpec,
-  ExecutionStep,
-  ParameterDefinition,
-  OutputDefinition,
-  CheckpointSpec,
-  StepAction,
-  TargetingStrategy,
-  StepAssertion,
   BusinessOutcomeDefinition,
+  CheckpointSpec,
+  ExecutionStep,
+  OutputDefinition,
+  ParameterDefinition,
+  StepAction,
+  StepAssertion,
+  TargetingStrategy,
 } from "./artifact.schema";
 import { validateArtifact } from "./artifact.validator";
 

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { LLMClient, AgentDecision, DiscoveryContext } from "./llm-client.interface";
 import type { SurfaceSnapshot } from "../surface/surface.interface";
+import type { AgentDecision, DiscoveryContext, LLMClient } from "./llm-client.interface";
 
 export interface GeminiClientOptions {
   apiKey?: string;
@@ -18,20 +18,15 @@ export class GeminiClient implements LLMClient {
   private retryDelayMs: number;
 
   constructor(options: GeminiClientOptions = {}) {
-    const apiKey =
-      options.apiKey ||
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      "";
+    const apiKey = options.apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
     if (!apiKey) {
-      console.warn("⚠️ Warning: GEMINI_API_KEY or GOOGLE_API_KEY is not set. GeminiClient will throw on generation calls.");
+      console.warn(
+        "⚠️ Warning: GEMINI_API_KEY or GOOGLE_API_KEY is not set. GeminiClient will throw on generation calls.",
+      );
     }
     this.client = new GoogleGenerativeAI(apiKey);
 
-    const primaryModel =
-      options.modelName ||
-      process.env.GEMINI_MODEL ||
-      "gemini-flash-latest";
+    const primaryModel = options.modelName || process.env.GEMINI_MODEL || "gemini-flash-latest";
 
     this.modelName = primaryModel;
 
@@ -50,7 +45,7 @@ export class GeminiClient implements LLMClient {
 
   async generateDecision(
     snapshot: SurfaceSnapshot,
-    context: DiscoveryContext
+    context: DiscoveryContext,
   ): Promise<AgentDecision> {
     return this.generateDecisionInternal(snapshot, context, async (modelName) => {
       const model = this.client.getGenerativeModel({
@@ -61,6 +56,8 @@ export class GeminiClient implements LLMClient {
       });
 
       const prompt = this.buildPrompt(snapshot, context);
+      // The SDK accepts text plus optional inline image content for multimodal prompts.
+      // biome-ignore lint/suspicious/noExplicitAny: Google SDK content input is not exported as a stable type.
       const contents: any[] = [prompt];
 
       if (snapshot.screenshotBase64) {
@@ -82,16 +79,15 @@ export class GeminiClient implements LLMClient {
   async generateDecisionInternal(
     _snapshot: SurfaceSnapshot,
     _context: DiscoveryContext,
-    generator: (modelName: string) => Promise<any>
+    // biome-ignore lint/suspicious/noExplicitAny: Google SDK response type is not exported as a stable type.
+    generator: (modelName: string) => Promise<any>,
   ): Promise<AgentDecision> {
+    // biome-ignore lint/suspicious/noExplicitAny: Preserve the SDK error for the final fallback failure.
     let lastError: any = null;
 
     for (const currentModel of this.fallbackModels) {
       try {
-        const response = await this.executeWithRetry(
-          () => generator(currentModel),
-          currentModel
-        );
+        const response = await this.executeWithRetry(() => generator(currentModel), currentModel);
         const responseText = response.response.text();
 
         try {
@@ -109,13 +105,14 @@ export class GeminiClient implements LLMClient {
             goalMet: Boolean(parsed.goalMet),
             notes: parsed.notes,
           };
-        } catch (err) {
+        } catch (_err) {
           throw new Error(`Failed to parse Gemini response as JSON: ${responseText}`);
         }
+        // biome-ignore lint/suspicious/noExplicitAny: Google SDK errors expose status and message dynamically.
       } catch (err: any) {
         lastError = err;
         console.warn(
-          `⚠️ Model ${currentModel} failed (${err.status || err.message?.substring(0, 80)}). Trying fallback model...`
+          `⚠️ Model ${currentModel} failed (${err.status || err.message?.substring(0, 80)}). Trying fallback model...`,
         );
       }
     }
@@ -130,6 +127,7 @@ export class GeminiClient implements LLMClient {
     for (let attempt = 0; ; attempt++) {
       try {
         return await generate();
+        // biome-ignore lint/suspicious/noExplicitAny: Google SDK errors expose status and message dynamically.
       } catch (error: any) {
         const status = error?.status;
         const msg = String(error?.message || "");
@@ -146,8 +144,7 @@ export class GeminiClient implements LLMClient {
           msg.includes("Resource Exhausted") ||
           msg.includes("RESOURCE_EXHAUSTED");
 
-        const isTransientServerGlitch =
-          status === 500 || status === 502 || status === 504;
+        const isTransientServerGlitch = status === 500 || status === 502 || status === 504;
 
         const isRetryable = is503HighDemand || isRateLimit || isTransientServerGlitch;
 
@@ -157,7 +154,7 @@ export class GeminiClient implements LLMClient {
 
         const delayMs = this.retryDelayMs * 2 ** attempt + Math.floor(Math.random() * 500);
         console.warn(
-          `⚠️ [Gemini ${modelName}] Transient ${status || "error"} (${is503HighDemand ? "High Demand" : "Rate Limit"}); retrying in ${delayMs}ms (attempt ${attempt + 1}/${this.maxRetries})...`
+          `⚠️ [Gemini ${modelName}] Transient ${status || "error"} (${is503HighDemand ? "High Demand" : "Rate Limit"}); retrying in ${delayMs}ms (attempt ${attempt + 1}/${this.maxRetries})...`,
         );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }

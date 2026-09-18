@@ -1,8 +1,4 @@
-import {
-  ArtifactSpecSchema,
-  type ArtifactSpec,
-  type ExecutionStep,
-} from "./artifact.schema";
+import { type ArtifactSpec, ArtifactSpecSchema } from "./artifact.schema";
 
 export interface ValidationIssue {
   severity: "error" | "warning";
@@ -60,8 +56,8 @@ export function validateArtifact(rawArtifact: unknown): ValidationReport {
 
   artifact.steps.forEach((step, index) => {
     if (step.action.type === "fill") {
-      let match: RegExpExecArray | null;
-      while ((match = paramTemplateRegex.exec(step.action.valueTemplate)) !== null) {
+      let match = paramTemplateRegex.exec(step.action.valueTemplate);
+      while (match !== null) {
         const referencedParam = match[1];
         if (!declaredInputKeys.has(referencedParam)) {
           errors.push({
@@ -70,6 +66,7 @@ export function validateArtifact(rawArtifact: unknown): ValidationReport {
             message: `Template references undeclared input parameter: "${referencedParam}"`,
           });
         }
+        match = paramTemplateRegex.exec(step.action.valueTemplate);
       }
     }
   });

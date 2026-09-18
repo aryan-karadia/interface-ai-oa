@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { MockSurface } from "../../src/surface/mock-surface";
 import { LocatorEngine } from "../../src/replay/locator-engine";
+import { MockSurface } from "../../src/surface/mock-surface";
 
 describe("LocatorEngine Multi-Tier Targeting & Fallbacks", () => {
   test("resolves element via Tier 1: Semantic (Role + Name)", async () => {
@@ -31,7 +31,7 @@ describe("LocatorEngine Multi-Tier Targeting & Fallbacks", () => {
 
     const target = await LocatorEngine.resolve(surface, {
       semantic: { role: "textbox", name: "Unused Semantic Name" }, // Will fail
-      anchor: { anchorText: "Member ID:" },                        // Fallback will succeed
+      anchor: { anchorText: "Member ID:" }, // Fallback will succeed
     });
 
     expect(target).not.toBeNull();

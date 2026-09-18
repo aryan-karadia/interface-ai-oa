@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { MockSurface } from "../../src/surface/mock-surface";
+import { buildArtifact } from "../../src/artifact/compiler";
 import { GuardrailService } from "../../src/guardrail/guardrail.service";
 import { ReplayExecutor } from "../../src/replay/replay-executor";
-import { buildArtifact } from "../../src/artifact/compiler";
+import { MockSurface } from "../../src/surface/mock-surface";
 
 describe("Replay Result Contract & Business Outcome Separation", () => {
   const baseArtifact = buildArtifact({

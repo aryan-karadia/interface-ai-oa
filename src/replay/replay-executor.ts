@@ -1,15 +1,12 @@
 import type { ArtifactSpec, ExecutionStep, StepAction } from "../artifact/artifact.schema";
-import type { Surface } from "../surface/surface.interface";
-import type { IGuardrailService } from "../guardrail/guardrail.interface";
 import type { SessionCoordinator } from "../escalation/session-coordinator";
+import type { IGuardrailService } from "../guardrail/guardrail.interface";
+import type { Surface } from "../surface/surface.interface";
 import { LocatorEngine } from "./locator-engine";
 import type {
-  ReplayResult,
-  ReplaySuccessResult,
-  ReplayBusinessOutcomeResult,
-  ReplayRecoverableResult,
-  ReplayHardFailureResult,
   ExecutionTelemetry,
+  ReplayHardFailureResult,
+  ReplayResult,
   StepTelemetry,
 } from "./result-contract";
 
@@ -27,7 +24,7 @@ export class ReplayExecutor {
   constructor(
     private surface: Surface,
     private guardrail: IGuardrailService,
-    private escalation?: SessionCoordinator
+    private escalation?: SessionCoordinator,
   ) {}
 
   async execute(artifact: ArtifactSpec, options: ReplayOptions = {}): Promise<ReplayResult> {
@@ -51,7 +48,7 @@ export class ReplayExecutor {
             startTime,
             stepMetrics,
             "SCHEMA_MISMATCH",
-            `Missing required input parameter: "${key}"`
+            `Missing required input parameter: "${key}"`,
           );
         }
       }
@@ -73,7 +70,7 @@ export class ReplayExecutor {
               stepMetrics,
               "GUARDRAIL_VIOLATION",
               stepResult.error || "Guardrail violation blocked execution",
-              step.id
+              step.id,
             );
           }
 
@@ -94,18 +91,18 @@ export class ReplayExecutor {
 
             // Attempt human escalation if coordinator available
             if (this.escalation) {
-              const resolution = await this.escalation.requestEscalation(
+              const _resolution = await this.escalation.requestEscalation(
                 "TARGETING_EXHAUSTED",
                 `Failed step "${step.id}": ${stepResult.error}`,
                 step.id,
-                "Please resolve the element or modal in the browser window"
+                "Please resolve the element or modal in the browser window",
               );
               // Retry once after human handoff
               const retryAfterHandoff = await this.executeStep(
                 artifact,
                 step,
                 resolvedInputs,
-                stepMetrics
+                stepMetrics,
               );
               if (retryAfterHandoff.status !== "STEP_SUCCESS") {
                 return this.createHardFailure(
@@ -116,7 +113,7 @@ export class ReplayExecutor {
                   stepMetrics,
                   "TARGETING_EXHAUSTED",
                   `Step "${step.id}" failed after operator handoff: ${retryAfterHandoff.error}`,
-                  step.id
+                  step.id,
                 );
               }
             } else {
@@ -128,7 +125,7 @@ export class ReplayExecutor {
                 stepMetrics,
                 "TARGETING_EXHAUSTED",
                 `Targeting exhausted on step "${step.id}": ${stepResult.error}`,
-                step.id
+                step.id,
               );
             }
           }
@@ -142,7 +139,7 @@ export class ReplayExecutor {
               stepMetrics,
               "UNHANDLED_EXCEPTION",
               stepResult.error || "Fatal step failure",
-              step.id
+              step.id,
             );
           }
         }
@@ -210,7 +207,7 @@ export class ReplayExecutor {
         startTime,
         stepMetrics,
         "TARGETING_EXHAUSTED",
-        "Neither success checkpoint condition nor any registered business outcome was satisfied"
+        "Neither success checkpoint condition nor any registered business outcome was satisfied",
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -221,7 +218,7 @@ export class ReplayExecutor {
         startTime,
         stepMetrics,
         "UNHANDLED_EXCEPTION",
-        message
+        message,
       );
     }
   }
@@ -230,7 +227,7 @@ export class ReplayExecutor {
     artifact: ArtifactSpec,
     step: ExecutionStep,
     inputs: Record<string, unknown>,
-    stepMetrics: StepTelemetry[]
+    stepMetrics: StepTelemetry[],
   ): Promise<{
     status: "STEP_SUCCESS" | "GUARDRAIL_VIOLATION" | "RECOVERABLE" | "FATAL";
     error?: string;
@@ -246,7 +243,7 @@ export class ReplayExecutor {
     const check = this.guardrail.checkAction(
       interpolatedAction,
       currentSnapshot.url,
-      step.targeting
+      step.targeting,
     );
     if (!check.allowed) {
       stepMetrics.push({
@@ -319,7 +316,7 @@ export class ReplayExecutor {
 
   private async evaluateCheckpoint(
     artifact: ArtifactSpec,
-    inputs: Record<string, unknown>
+    inputs: Record<string, unknown>,
   ): Promise<
     | { type: "SUCCESS"; matchedAssertion: string }
     | {
@@ -362,7 +359,7 @@ export class ReplayExecutor {
     const holds = await this.surface.evaluateAssertion(
       assertion.type,
       expectedVal,
-      assertion.targeting
+      assertion.targeting,
     );
 
     if (holds) {
@@ -378,7 +375,7 @@ export class ReplayExecutor {
   private async extractValue(
     outputKey: string,
     step: ExecutionStep,
-    artifact: ArtifactSpec
+    artifact: ArtifactSpec,
   ): Promise<unknown> {
     const outputDef = artifact.outputs?.[outputKey];
     if (outputDef) {
@@ -427,7 +424,7 @@ export class ReplayExecutor {
     stepMetrics: StepTelemetry[],
     category: ReplayHardFailureResult["category"],
     message: string,
-    failedStepId?: string
+    failedStepId?: string,
   ): ReplayHardFailureResult {
     return {
       status: "HARD_FAILURE",
@@ -444,7 +441,7 @@ export class ReplayExecutor {
     runId: string,
     startedAt: string,
     startTime: number,
-    stepMetrics: StepTelemetry[]
+    stepMetrics: StepTelemetry[],
   ): ExecutionTelemetry {
     return {
       runId,

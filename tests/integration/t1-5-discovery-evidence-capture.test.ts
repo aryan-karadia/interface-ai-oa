@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
-import { resolve } from "path";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
 import { startLegacyPortalServer } from "../../fixtures/legacy-portal/server";
-import { PlaywrightSurface } from "../../src/surface/playwright-surface";
-import { GuardrailService } from "../../src/guardrail/guardrail.service";
-import { DiscoveryAgent } from "../../src/discovery/agent";
-import { MockLLMClient } from "../../src/discovery/mock-llm-client";
-import { GeminiClient } from "../../src/discovery/gemini-client";
 import { validateArtifact } from "../../src/artifact/artifact.validator";
+import { DiscoveryAgent } from "../../src/discovery/agent";
+import { GeminiClient } from "../../src/discovery/gemini-client";
+import { MockLLMClient } from "../../src/discovery/mock-llm-client";
+import { GuardrailService } from "../../src/guardrail/guardrail.service";
+import { PlaywrightSurface } from "../../src/surface/playwright-surface";
 
 describe("T1.5: Live Discovery Run & Evidence Capture", () => {
   const rootDir = resolve(import.meta.dir, "../..");
@@ -47,29 +47,31 @@ describe("T1.5: Live Discovery Run & Evidence Capture", () => {
       useLive && apiKey
         ? new GeminiClient({ apiKey })
         : new MockLLMClient([
-          {
-            thought: "I see the Member ID input field adjacent to 'Member ID:'. Let me fill it with member ID 10042.",
-            action: { type: "fill", valueTemplate: "10042" },
-            targeting: {
-              anchor: { anchorText: "Member ID:", direction: "right", targetTag: "input" },
-              structural: { css: "#ctl00_MainContent_tabSearch_txtMemberId_8912" },
+            {
+              thought:
+                "I see the Member ID input field adjacent to 'Member ID:'. Let me fill it with member ID 10042.",
+              action: { type: "fill", valueTemplate: "10042" },
+              targeting: {
+                anchor: { anchorText: "Member ID:", direction: "right", targetTag: "input" },
+                structural: { css: "#ctl00_MainContent_tabSearch_txtMemberId_8912" },
+              },
+              goalMet: false,
             },
-            goalMet: false,
-          },
-          {
-            thought: "The member ID is entered. Now I will click the Search button.",
-            action: { type: "click" },
-            targeting: {
-              semantic: { name: "Search" },
-              structural: { css: "#ctl00_MainContent_btnSearch_329a" },
+            {
+              thought: "The member ID is entered. Now I will click the Search button.",
+              action: { type: "click" },
+              targeting: {
+                semantic: { name: "Search" },
+                structural: { css: "#ctl00_MainContent_btnSearch_329a" },
+              },
+              goalMet: false,
             },
-            goalMet: false,
-          },
-          {
-            thought: "The member record table (#ctl00_gridMemberDetails) is displayed showing Alice Henderson and balance $240.50. The goal is fulfilled.",
-            goalMet: true,
-          },
-        ]);
+            {
+              thought:
+                "The member record table (#ctl00_gridMemberDetails) is displayed showing Alice Henderson and balance $240.50. The goal is fulfilled.",
+              goalMet: true,
+            },
+          ]);
 
     const agent = new DiscoveryAgent(surface, llmClient, guardrail);
 
@@ -96,7 +98,9 @@ describe("T1.5: Live Discovery Run & Evidence Capture", () => {
       expect(files.some((f) => f.startsWith("dom-snapshot-step-"))).toBe(true);
 
       // Validate the synthesized artifact
-      const artifactRaw = JSON.parse(readFileSync(resolve(evidenceDir, "synthesized-artifact.json"), "utf-8"));
+      const artifactRaw = JSON.parse(
+        readFileSync(resolve(evidenceDir, "synthesized-artifact.json"), "utf-8"),
+      );
       const validation = validateArtifact(artifactRaw);
       expect(validation.valid).toBe(true);
     } finally {

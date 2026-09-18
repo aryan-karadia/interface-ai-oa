@@ -1,15 +1,15 @@
-import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { join } from "path";
-import type { Surface } from "../surface/surface.interface";
-import type { LLMClient, DiscoveryContext } from "./llm-client.interface";
-import type { IGuardrailService } from "../guardrail/guardrail.interface";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ArtifactSpec } from "../artifact/artifact.schema";
 import {
   compileDiscoveryEvidence,
-  type DiscoveryTraceStep,
   type DeclaredInputEvidence,
+  type DiscoveryTraceStep,
   type ObservedOutputEvidence,
 } from "../artifact/compiler";
+import type { IGuardrailService } from "../guardrail/guardrail.interface";
+import type { Surface } from "../surface/surface.interface";
+import type { DiscoveryContext, LLMClient } from "./llm-client.interface";
 
 export interface DiscoveryOptions {
   goal: string;
@@ -43,7 +43,7 @@ export class DiscoveryAgent {
   constructor(
     private surface: Surface,
     private llmClient: LLMClient,
-    private guardrail: IGuardrailService
+    private guardrail: IGuardrailService,
   ) {}
 
   async discover(options: DiscoveryOptions): Promise<DiscoveryRunResult> {
@@ -111,8 +111,8 @@ export class DiscoveryAgent {
               timestamp: snapshot.timestamp,
             },
             null,
-            2
-          )
+            2,
+          ),
         );
 
         if (snapshot.screenshotBase64) {
@@ -166,7 +166,8 @@ export class DiscoveryAgent {
           stepsTaken: currentStep,
           transcript,
           evidenceDir: options.evidenceDir,
-          error: "Discovery stopped: dead-end reached (LLM provided no action and goal was not declared met)",
+          error:
+            "Discovery stopped: dead-end reached (LLM provided no action and goal was not declared met)",
         };
       }
 
@@ -197,7 +198,7 @@ export class DiscoveryAgent {
       const guardrailCheck = this.guardrail.checkAction(
         decision.action,
         snapshot.url,
-        decision.targeting
+        decision.targeting,
       );
       if (!guardrailCheck.allowed) {
         this.flushEvidence(options.evidenceDir, transcript);
@@ -236,7 +237,7 @@ export class DiscoveryAgent {
         stepNumber: currentStep,
         thought: decision.thought,
         actionType: decision.action.type,
-        resultSummary: actResult.success ? "Success" : (actResult.error || "Failed"),
+        resultSummary: actResult.success ? "Success" : actResult.error || "Failed",
       });
 
       currentStep++;
@@ -255,7 +256,7 @@ export class DiscoveryAgent {
   private flushEvidence(
     evidenceDir?: string,
     transcript?: DiscoveryRunResult["transcript"],
-    artifact?: ArtifactSpec
+    artifact?: ArtifactSpec,
   ): void {
     if (!evidenceDir) return;
     if (transcript) {
@@ -264,7 +265,7 @@ export class DiscoveryAgent {
     if (artifact) {
       writeFileSync(
         join(evidenceDir, "synthesized-artifact.json"),
-        JSON.stringify(artifact, null, 2)
+        JSON.stringify(artifact, null, 2),
       );
     }
   }

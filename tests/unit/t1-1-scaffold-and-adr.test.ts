@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, readdirSync } from "fs";
-import { resolve } from "path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 describe("T1.1: Repo Scaffold & ADR Process", () => {
   const rootDir = resolve(import.meta.dir, "../..");

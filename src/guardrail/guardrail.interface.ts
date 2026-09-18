@@ -13,13 +13,24 @@ export interface GuardrailPolicy {
 export interface PreActionCheckResult {
   allowed: boolean;
   riskLevel: RiskLevel;
-  violationCategory?: "FORBIDDEN_DOMAIN" | "FORBIDDEN_PATH" | "HIGH_RISK_UNAUTHORIZED" | "MALFORMED_URL";
+  violationCategory?:
+    | "FORBIDDEN_DOMAIN"
+    | "FORBIDDEN_PATH"
+    | "HIGH_RISK_UNAUTHORIZED"
+    | "MALFORMED_URL";
   reason?: string;
 }
 
 export interface IGuardrailService {
-  checkAction(action: StepAction, currentUrl: string, targeting?: TargetingStrategy): PreActionCheckResult;
+  checkAction(
+    action: StepAction,
+    currentUrl: string,
+    targeting?: TargetingStrategy,
+  ): PreActionCheckResult;
   checkUrl(url: string): boolean;
   redactText(text: string): string;
-  redactInputs(inputs: Record<string, unknown>, sensitiveKeys: Set<string>): Record<string, unknown>;
+  redactInputs(
+    inputs: Record<string, unknown>,
+    sensitiveKeys: Set<string>,
+  ): Record<string, unknown>;
 }

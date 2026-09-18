@@ -21,8 +21,5 @@ export interface DiscoveryContext {
 }
 
 export interface LLMClient {
-  generateDecision(
-    snapshot: SurfaceSnapshot,
-    context: DiscoveryContext
-  ): Promise<AgentDecision>;
+  generateDecision(snapshot: SurfaceSnapshot, context: DiscoveryContext): Promise<AgentDecision>;
 }

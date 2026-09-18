@@ -111,6 +111,8 @@ describe("Artifact Schema & Validation", () => {
 
     const report = validateArtifact(invalid);
     expect(report.valid).toBe(false);
-    expect(report.errors.some((e) => e.message.includes("requires a targeting strategy"))).toBe(true);
+    expect(report.errors.some((e) => e.message.includes("requires a targeting strategy"))).toBe(
+      true,
+    );
   });
 });

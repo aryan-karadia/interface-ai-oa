@@ -1,21 +1,18 @@
-import {
-  chromium,
-  type Browser,
-  type BrowserContext,
-  type Page,
-  type Locator,
-} from "playwright";
-import type {
-  Surface,
-  SurfaceSnapshot,
-  SurfaceElement,
-  ActionResult,
-  AccessibilityNode,
-} from "./surface.interface";
+import { type Browser, type BrowserContext, chromium, type Locator, type Page } from "playwright";
 import type { StepAction, TargetingStrategy } from "../artifact/artifact.schema";
+import type {
+  AccessibilityNode,
+  ActionResult,
+  Surface,
+  SurfaceElement,
+  SurfaceSnapshot,
+} from "./surface.interface";
 
 export class PlaywrightElementHandle implements SurfaceElement {
-  constructor(public id: string, private locator: Locator) {}
+  constructor(
+    public id: string,
+    private locator: Locator,
+  ) {}
 
   role?: string;
   name?: string;
@@ -112,7 +109,10 @@ export class PlaywrightSurface implements Surface {
       if ("accessibility" in page && typeof (page as any).accessibility?.snapshot === "function") {
         axSnapshot = await (page as any).accessibility.snapshot();
       } else {
-        const ariaYaml = await page.locator(":root").ariaSnapshot().catch(() => "");
+        const ariaYaml = await page
+          .locator(":root")
+          .ariaSnapshot()
+          .catch(() => "");
         axSnapshot = { role: "WebArea", name: title, description: ariaYaml };
       }
     } catch {
@@ -121,9 +121,7 @@ export class PlaywrightSurface implements Surface {
     const normalizedTree: AccessibilityNode = this.normalizeAxNode(axSnapshot);
 
     // Visible text from body
-    const visibleText = await page
-      .evaluate(() => document.body?.innerText || "")
-      .catch(() => "");
+    const visibleText = await page.evaluate(() => document.body?.innerText || "").catch(() => "");
 
     // Viewport screenshot for multi-modal / visual inspection
     const screenshotBuffer = await page.screenshot({ type: "jpeg", quality: 50 }).catch(() => null);
@@ -171,25 +169,48 @@ export class PlaywrightSurface implements Surface {
       try {
         if (role) {
           const roleLocator = page.getByRole(role as any, { name, exact });
-          if (await roleLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+          if (
+            await roleLocator
+              .first()
+              .isVisible({ timeout: 1000 })
+              .catch(() => false)
+          ) {
             return new PlaywrightElementHandle("semantic_role_target", roleLocator.first());
           }
         }
         if (name) {
           const labelLocator = page.getByLabel(name, { exact });
-          if (await labelLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+          if (
+            await labelLocator
+              .first()
+              .isVisible({ timeout: 1000 })
+              .catch(() => false)
+          ) {
             return new PlaywrightElementHandle("semantic_label_target", labelLocator.first());
           }
 
           // Resilient fallback for unsemantic legacy clickable spans/divs: exact text first
           const exactTextLocator = page.getByText(name, { exact: true });
-          if (await exactTextLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
-            return new PlaywrightElementHandle("semantic_exact_text_target", exactTextLocator.first());
+          if (
+            await exactTextLocator
+              .first()
+              .isVisible({ timeout: 1000 })
+              .catch(() => false)
+          ) {
+            return new PlaywrightElementHandle(
+              "semantic_exact_text_target",
+              exactTextLocator.first(),
+            );
           }
 
           if (exact === false) {
             const textLocator = page.getByText(name, { exact: false });
-            if (await textLocator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+            if (
+              await textLocator
+                .first()
+                .isVisible({ timeout: 1000 })
+                .catch(() => false)
+            ) {
               return new PlaywrightElementHandle("semantic_text_target", textLocator.first());
             }
           }
@@ -207,7 +228,9 @@ export class PlaywrightSurface implements Surface {
         const anchorLocator = page.locator(`text=${anchorText}`).first();
         if (await anchorLocator.isVisible({ timeout: 1000 }).catch(() => false)) {
           // Check sibling or parent container
-          const target = anchorLocator.locator(`xpath=following-sibling::${targetTag} | ..//${targetTag}`).first();
+          const target = anchorLocator
+            .locator(`xpath=following-sibling::${targetTag} | ..//${targetTag}`)
+            .first();
           if (await target.isVisible({ timeout: 1000 }).catch(() => false)) {
             return new PlaywrightElementHandle("anchor_target", target);
           }
@@ -241,7 +264,7 @@ export class PlaywrightSurface implements Surface {
         const clickX = bounds.x * viewport.width + (bounds.width * viewport.width) / 2;
         const clickY = bounds.y * viewport.height + (bounds.height * viewport.height) / 2;
 
-        const locator = page.locator("body");
+        const _locator = page.locator("body");
         return {
           id: "visual_coord_target",
           click: async () => {
@@ -324,7 +347,7 @@ export class PlaywrightSurface implements Surface {
   async evaluateAssertion(
     type: "element_visible" | "text_contains" | "url_matches",
     expectedValue?: string,
-    targeting?: TargetingStrategy
+    targeting?: TargetingStrategy,
   ): Promise<boolean> {
     const page = this.getPage();
     if (type === "url_matches") {
@@ -347,8 +370,15 @@ export class PlaywrightSurface implements Surface {
   async dismissOverlays(): Promise<boolean> {
     const page = this.getPage();
     try {
-      const dismissButtons = page.locator("button:has-text('Close'), button:has-text('Dismiss'), .modal-close, .toast-close");
-      if (await dismissButtons.first().isVisible({ timeout: 500 }).catch(() => false)) {
+      const dismissButtons = page.locator(
+        "button:has-text('Close'), button:has-text('Dismiss'), .modal-close, .toast-close",
+      );
+      if (
+        await dismissButtons
+          .first()
+          .isVisible({ timeout: 500 })
+          .catch(() => false)
+      ) {
         await dismissButtons.first().click();
         return true;
       }

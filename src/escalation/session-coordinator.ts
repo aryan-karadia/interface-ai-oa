@@ -1,9 +1,9 @@
 import type { Surface } from "../surface/surface.interface";
 import type {
   ControlOwner,
+  EscalationListener,
   TakeoverRequest,
   TakeoverResolution,
-  EscalationListener,
 } from "./escalation.interface";
 
 export class SessionCoordinator {
@@ -32,7 +32,7 @@ export class SessionCoordinator {
     reason: TakeoverRequest["reason"],
     message: string,
     stepId?: string,
-    suggestedAction?: string
+    suggestedAction?: string,
   ): Promise<TakeoverResolution> {
     if (this.currentState !== "AUTOMATION_OWNED") {
       throw new Error(`Cannot request escalation from state: ${this.currentState}`);

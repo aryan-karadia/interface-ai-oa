@@ -18,6 +18,7 @@ const IRREVERSIBLE_KEYWORDS = [
 /**
  * Deterministically classifies action risk levels.
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: Static API is part of the public guardrail contract.
 export class RiskClassifier {
   static classify(action: StepAction, targeting?: TargetingStrategy): RiskLevel {
     // Check if targeting mentions irreversible keywords

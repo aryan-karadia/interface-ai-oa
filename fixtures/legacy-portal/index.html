@@ -29,7 +29,7 @@
       <div style="font-weight: bold; margin-bottom: 8px;">System Announcement</div>
       <p style="margin-bottom: 12px;">Scheduled database maintenance window tonight at 23:00 UTC.</p>
       <div style="text-align: right;">
-        <span id="ctl00_btnDismissModal" class="btn-fake modal-close" onclick="dismissModal()">Dismiss</span>
+        <button type="button" id="ctl00_btnDismissModal" class="btn-fake modal-close" onclick="dismissModal()">Dismiss</button>
       </div>
     </div>
   </div>
@@ -44,9 +44,9 @@
           <div class="form-panel" style="height: 400px;">
             <b>Navigation Menu</b>
             <ul style="padding-left: 15px; margin-top: 5px; line-height: 1.6;">
-              <li><a href="#" onclick="showSection('search')">Member Search</a></li>
-              <li><a href="#" onclick="showSection('claims')">Claims Queue</a></li>
-              <li><a href="#" onclick="triggerModal()">Show Maintenance Notice</a></li>
+              <li><a href="/portal/search" onclick="event.preventDefault(); showSection('search')">Member Search</a></li>
+              <li><a href="/portal/claims" onclick="event.preventDefault(); showSection('claims')">Claims Queue</a></li>
+              <li><a href="/portal/maintenance" onclick="event.preventDefault(); triggerModal()">Show Maintenance Notice</a></li>
             </ul>
           </div>
         </td>
@@ -80,8 +80,8 @@
                 <td></td>
                 <td>
                   <!-- Unsemantic clickable span -->
-                  <span id="ctl00_MainContent_btnSearch_329a" class="btn-fake" onclick="executeSearch()">Search</span>
-                  <span id="ctl00_MainContent_btnReset_110b" class="btn-fake" onclick="resetForm()">Clear</span>
+                  <button type="button" id="ctl00_MainContent_btnSearch_329a" class="btn-fake" onclick="executeSearch()">Search</button>
+                  <button type="button" id="ctl00_MainContent_btnReset_110b" class="btn-fake" onclick="resetForm()">Clear</button>
                 </td>
               </tr>
             </table>
@@ -94,7 +94,7 @@
             <!-- Embedded Hostile Legacy Iframe -->
             <div style="margin-top: 15px; border-top: 1px dashed #999; padding-top: 10px;">
               <b>External Auditing Sub-Queue (Embedded Frame):</b><br/>
-              <iframe id="ctl00_ifrClaimsQueue" src="/portal/claims-frame" style="width: 100%; height: 75px; border: 1px inset #d4d0c8; margin-top: 4px;"></iframe>
+              <iframe id="ctl00_ifrClaimsQueue" title="Claims audit queue" src="/portal/claims-frame" style="width: 100%; height: 75px; border: 1px inset #d4d0c8; margin-top: 4px;"></iframe>
             </div>
 
           </div>
@@ -104,23 +104,28 @@
   </div>
 
   <script>
+    // biome-ignore lint/correctness/noUnusedVariables: Called by inline navigation handlers.
     function showSection(name) {
       console.log('Navigated to section:', name);
     }
 
+    // biome-ignore lint/correctness/noUnusedVariables: Called by the inline maintenance link handler.
     function triggerModal() {
       document.getElementById('ctl00_pnlNoticeModal').style.display = 'flex';
     }
 
+    // biome-ignore lint/correctness/noUnusedVariables: Called by the inline dismiss button handler.
     function dismissModal() {
       document.getElementById('ctl00_pnlNoticeModal').style.display = 'none';
     }
 
+    // biome-ignore lint/correctness/noUnusedVariables: Called by the inline reset button handler.
     function resetForm() {
       document.getElementById('ctl00_MainContent_tabSearch_txtMemberId_8912').value = '';
       document.getElementById('ctl00_pnlResults').style.display = 'none';
     }
 
+    // biome-ignore lint/correctness/noUnusedVariables: Called by the inline search button handler.
     function executeSearch() {
       const input = document.getElementById('ctl00_MainContent_tabSearch_txtMemberId_8912').value.trim();
       const resultsDiv = document.getElementById('ctl00_pnlResults');

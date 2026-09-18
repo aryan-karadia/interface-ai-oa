@@ -1,5 +1,5 @@
-import type { Surface, SurfaceElement } from "../surface/surface.interface";
 import type { TargetingStrategy } from "../artifact/artifact.schema";
+import type { Surface, SurfaceElement } from "../surface/surface.interface";
 
 export interface ResolvedTarget {
   element: SurfaceElement;
@@ -13,13 +13,14 @@ export interface ResolvedTarget {
  * Tier 3: Structural (XPath / CSS)
  * Tier 4: Visual bounding box
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: Static API is part of the replay contract.
 export class LocatorEngine {
   /**
    * Resolves a targeting strategy against a surface, walking through the fallback tiers in order.
    */
   static async resolve(
     surface: Surface,
-    targeting: TargetingStrategy
+    targeting: TargetingStrategy,
   ): Promise<ResolvedTarget | null> {
     // 1. Try Semantic Tier
     if (targeting.semantic) {

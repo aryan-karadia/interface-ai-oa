@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { compileDiscoveryEvidence, type DiscoveryRunEvidence } from "../../src/artifact/compiler";
 import { validateArtifact } from "../../src/artifact/artifact.validator";
+import { compileDiscoveryEvidence, type DiscoveryRunEvidence } from "../../src/artifact/compiler";
 
 describe("T2.2: Discovery -> Artifact Compiler", () => {
   const sampleEvidence: DiscoveryRunEvidence = {
@@ -124,7 +124,7 @@ describe("T2.2: Discovery -> Artifact Compiler", () => {
     expect(artifact.outputs?.accountBalance).toBeDefined();
     expect(artifact.outputs?.accountBalance.type).toBe("string");
     expect(artifact.outputs?.accountBalance.selector.structural?.css).toBe(
-      "#ctl00_gridMemberDetails tr td:last-child"
+      "#ctl00_gridMemberDetails tr td:last-child",
     );
     // Source step ID should point to a valid step in the artifact
     const sourceStepId = artifact.outputs?.accountBalance.sourceStepId;
@@ -136,14 +136,14 @@ describe("T2.2: Discovery -> Artifact Compiler", () => {
     const artifact = compileDiscoveryEvidence(sampleEvidence);
 
     expect(artifact.checkpoint.successCondition.assertion.type).toBe("element_visible");
-    expect(
-      artifact.checkpoint.successCondition.assertion.targeting?.structural?.css
-    ).toBe("#ctl00_gridMemberDetails");
+    expect(artifact.checkpoint.successCondition.assertion.targeting?.structural?.css).toBe(
+      "#ctl00_gridMemberDetails",
+    );
 
     expect(artifact.checkpoint.businessOutcomes).toHaveLength(1);
     expect(artifact.checkpoint.businessOutcomes?.[0].code).toBe("MEMBER_NOT_FOUND");
     expect(artifact.checkpoint.businessOutcomes?.[0].detection.pattern).toBe(
-      "No active member records found"
+      "No active member records found",
     );
   });
 
@@ -163,7 +163,7 @@ describe("T2.2: Discovery -> Artifact Compiler", () => {
     };
 
     expect(() => compileDiscoveryEvidence(emptyEvidence)).toThrow(
-      /Cannot compile artifact: evidence contains no successful steps/i
+      /Cannot compile artifact: evidence contains no successful steps/i,
     );
   });
 });
