@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { readFileSync } from "fs";
+import { cpSync, existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { startLegacyPortalServer } from "../../fixtures/legacy-portal/server";
 import type { ArtifactSpec } from "../../src/artifact/artifact.schema";
@@ -100,8 +100,12 @@ describe("T3.1: Deterministic Replay Executor (Zero LLM)", () => {
         }),
       };
 
+      const evidenceDir = resolve(rootDir, "evidence/replay-success");
+      const replayDir = resolve(rootDir, "evidence/replay");
+
       const result = await executor.execute(testArtifact, {
         inputs: { memberId: "10042" },
+        evidenceDir,
       });
 
       expect(result.status).toBe("SUCCESS");
@@ -122,6 +126,20 @@ describe("T3.1: Deterministic Replay Executor (Zero LLM)", () => {
         expect(clickStep).toBeDefined();
         expect(clickStep?.success).toBe(true);
         expect(clickStep?.targetingTierUsed).toBe("semantic");
+
+        // Verify evidence package for successful replay
+        expect(existsSync(resolve(evidenceDir, "run-manifest.json"))).toBe(true);
+        expect(existsSync(resolve(evidenceDir, "replay-result.json"))).toBe(true);
+        expect(existsSync(resolve(evidenceDir, "dom-snapshot.json"))).toBe(true);
+        expect(existsSync(resolve(evidenceDir, "structured.log.jsonl"))).toBe(true);
+        expect(existsSync(resolve(evidenceDir, "replayed-artifact.json"))).toBe(true);
+
+        // Mirror to evidence/replay for standard path evaluation
+        try {
+          cpSync(evidenceDir, replayDir, { recursive: true });
+        } catch {
+          // ignore
+        }
       }
     });
   });

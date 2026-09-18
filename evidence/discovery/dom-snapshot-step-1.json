@@ -1,6 +1,6 @@
 {
   "step": 1,
-  "url": "http://localhost:3000/portal/search",
+  "url": "http://localhost:3088/portal/search",
   "title": "LegacyCore Enterprise Portal v4.12.8",
   "visibleText": "LegacyCore Portal - Member Administration System [PROD-US-EAST]\nNavigation Menu\nMember Search\nClaims Queue\nShow Maintenance Notice\n\t\nQuery Member Database\nMember ID:\t\nState / Region:\t\nAll Regions\nCalifornia\nNew York\nTexas\n\n\tSearch Clear\nExternal Auditing Sub-Queue (Embedded Frame):\n",
   "accessibilityTree": {
@@ -8,5 +8,5 @@
     "name": "LegacyCore Enterprise Portal v4.12.8",
     "description": "- document:\n  - text: LegacyCore Portal - Member Administration System [PROD-US-EAST]\n  - table:\n    - rowgroup:\n      - 'row \"Navigation Menu Member Search Claims Queue Show Maintenance Notice Query Member Database Member ID: State / Region: All Regions Search Clear External Auditing Sub-Queue (Embedded Frame): Claims audit queue\"':\n        - cell \"Navigation Menu Member Search Claims Queue Show Maintenance Notice\":\n          - text: Navigation Menu\n          - list:\n            - listitem:\n              - link \"Member Search\":\n                - /url: /portal/search\n            - listitem:\n              - link \"Claims Queue\":\n                - /url: /portal/claims\n            - listitem:\n              - link \"Show Maintenance Notice\":\n                - /url: /portal/maintenance\n        - 'cell \"Query Member Database Member ID: State / Region: All Regions Search Clear External Auditing Sub-Queue (Embedded Frame): Claims audit queue\"':\n          - text: Query Member Database\n          - table:\n            - rowgroup:\n              - row \"Member ID:\":\n                - cell \"Member ID:\"\n                - cell:\n                  - textbox\n              - 'row \"State / Region: All Regions\"':\n                - cell \"State / Region:\"\n                - cell \"All Regions\":\n                  - combobox:\n                    - option \"All Regions\" [selected]\n                    - option \"California\"\n                    - option \"New York\"\n                    - option \"Texas\"\n              - row \"Search Clear\":\n                - cell\n                - cell \"Search Clear\":\n                  - button \"Search\"\n                  - button \"Clear\"\n          - text: \"External Auditing Sub-Queue (Embedded Frame):\"\n          - iframe"
   },
-  "timestamp": "2026-09-18T22:15:48.548Z"
+  "timestamp": "2026-09-18T22:38:31.516Z"
 }

@@ -1,4 +1,4 @@
-import type { StructuredLogger } from "../logging/structured-logger";
+import { StructuredLogger } from "../logging/structured-logger";
 import type { Surface } from "../surface/surface.interface";
 import type {
   ControlOwner,
@@ -38,10 +38,18 @@ export class SessionCoordinator {
     },
   ];
 
+  private logger: StructuredLogger;
+
   constructor(
     private surface: Surface,
-    private logger?: StructuredLogger,
-  ) {}
+    logger?: StructuredLogger,
+  ) {
+    this.logger = logger ?? new StructuredLogger();
+  }
+
+  getLogger(): StructuredLogger {
+    return this.logger;
+  }
 
   getState(): ControlOwner {
     return this.currentState;

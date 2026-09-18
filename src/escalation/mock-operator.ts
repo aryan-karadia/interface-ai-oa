@@ -129,6 +129,11 @@ export class MockOperatorSurface implements EscalationListener {
       }
     }
 
+    // 5. structured.log.jsonl
+    if (coordinator.getLogger()) {
+      coordinator.getLogger().writeToFile(join(outputDir, "structured.log.jsonl"));
+    }
+
     return {
       requestPath,
       resolutionPath,

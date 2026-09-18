@@ -4,7 +4,7 @@ import type { ArtifactSpec, ExecutionStep, StepAction } from "../artifact/artifa
 import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
 import { Redactor } from "../guardrail/redactor";
-import type { StructuredLogger } from "../logging/structured-logger";
+import { StructuredLogger } from "../logging/structured-logger";
 import type { Surface } from "../surface/surface.interface";
 import { LocatorEngine } from "./locator-engine";
 import type {
@@ -26,12 +26,16 @@ export interface ReplayOptions {
  * Executes an Artifact against a Surface without any LLM in the loop.
  */
 export class ReplayExecutor {
+  private logger: StructuredLogger;
+
   constructor(
     private surface: Surface,
     private guardrail: IGuardrailService,
     private escalation?: SessionCoordinator,
-    private logger?: StructuredLogger,
-  ) {}
+    logger?: StructuredLogger,
+  ) {
+    this.logger = logger ?? new StructuredLogger();
+  }
 
   async execute(artifact: ArtifactSpec, options: ReplayOptions = {}): Promise<ReplayResult> {
     const startedAt = new Date().toISOString();
@@ -394,7 +398,14 @@ export class ReplayExecutor {
         "utf-8",
       );
 
-      // 3. dom-snapshot.json and screenshot-failure.jpeg
+      // 3. replayed-artifact.json
+      writeFileSync(
+        join(evidenceDir, "replayed-artifact.json"),
+        JSON.stringify(artifact, null, 2),
+        "utf-8",
+      );
+
+      // 4. dom-snapshot.json and screenshots
       const snapshot = await this.surface.perceive().catch(() => null);
       if (snapshot) {
         const { screenshotBase64, ...domData } = snapshot;
@@ -406,16 +417,27 @@ export class ReplayExecutor {
         );
 
         if (screenshotBase64) {
+          const statusScreenshot =
+            result.status === "SUCCESS" ? "screenshot-success.jpeg" : "screenshot-failure.jpeg";
           writeFileSync(
-            join(evidenceDir, "screenshot-failure.jpeg"),
+            join(evidenceDir, statusScreenshot),
+            Buffer.from(screenshotBase64, "base64"),
+          );
+          // Also keep screenshot-failure.jpeg if it's not SUCCESS or generic screenshot.jpeg
+          if (result.status !== "SUCCESS") {
+            writeFileSync(
+              join(evidenceDir, "screenshot-failure.jpeg"),
+              Buffer.from(screenshotBase64, "base64"),
+            );
+          }
+          writeFileSync(
+            join(evidenceDir, "screenshot.jpeg"),
             Buffer.from(screenshotBase64, "base64"),
           );
         }
       }
 
-      if (this.logger) {
-        this.logger.writeToFile(join(evidenceDir, "structured.log.jsonl"));
-      }
+      this.logger.writeToFile(join(evidenceDir, "structured.log.jsonl"));
     } catch {
       // Best-effort evidence capture
     }

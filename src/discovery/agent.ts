@@ -10,7 +10,7 @@ import {
 import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
 import { Redactor } from "../guardrail/redactor";
-import type { StructuredLogger } from "../logging/structured-logger";
+import { StructuredLogger } from "../logging/structured-logger";
 import type { Surface } from "../surface/surface.interface";
 import type { DiscoveryContext, LLMClient } from "./llm-client.interface";
 
@@ -43,13 +43,17 @@ export interface DiscoveryRunResult {
 }
 
 export class DiscoveryAgent {
+  private logger: StructuredLogger;
+
   constructor(
     private surface: Surface,
     private llmClient: LLMClient,
     private guardrail: IGuardrailService,
     private coordinator?: SessionCoordinator,
-    private logger?: StructuredLogger,
-  ) {}
+    logger?: StructuredLogger,
+  ) {
+    this.logger = logger ?? new StructuredLogger();
+  }
 
   async discover(options: DiscoveryOptions): Promise<DiscoveryRunResult> {
     const maxSteps = options.maxSteps ?? 10;

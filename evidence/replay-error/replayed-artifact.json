@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "legacy.portal.lookup_member",
+  "name": "Lookup Member Account",
+  "description": "Searches for a member by ID in LegacyCore Portal and verifies account status",
+  "createdAt": "2026-09-18T00:00:00Z",
+  "updatedAt": "2026-09-18T00:00:00Z",
+  "target": {
+    "appId": "legacy-core-portal",
+    "entryUrl": "http://localhost:3091/portal/search",
+    "allowedDomains": [
+      "localhost",
+      "127.0.0.1"
+    ]
+  },
+  "inputs": {
+    "memberId": {
+      "type": "string",
+      "description": "Unique enterprise member identifier",
+      "required": true,
+      "default": "10042",
+      "sensitive": false
+    }
+  },
+  "outputs": {
+    "memberName": {
+      "type": "string",
+      "description": "Full legal name of member",
+      "sourceStepId": "step_click_search",
+      "selector": {
+        "structural": {
+          "css": "#ctl00_out_fullName"
+        }
+      },
+      "attribute": "innerText"
+    }
+  },
+  "steps": [
+    {
+      "id": "step_navigate",
+      "description": "Navigate to the Member Search portal",
+      "action": {
+        "type": "navigate",
+        "url": "http://localhost:3091/portal/search"
+      }
+    },
+    {
+      "id": "step_fill_member_id",
+      "description": "Enter member ID into search input box",
+      "action": {
+        "type": "fill",
+        "valueTemplate": "{{inputs.memberId}}"
+      },
+      "targeting": {
+        "semantic": {
+          "role": "textbox",
+          "name": "Member ID"
+        },
+        "anchor": {
+          "anchorText": "Member ID:",
+          "direction": "right",
+          "targetTag": "input"
+        },
+        "structural": {
+          "css": "#ctl00_MainContent_tabSearch_txtMemberId_8912"
+        }
+      }
+    },
+    {
+      "id": "step_click_search",
+      "description": "Click the unsemantic Search button",
+      "action": {
+        "type": "click",
+        "button": "left"
+      },
+      "targeting": {
+        "semantic": {
+          "name": "Search"
+        },
+        "anchor": {
+          "anchorText": "Search",
+          "direction": "parent_container"
+        },
+        "structural": {
+          "css": "#ctl00_MainContent_btnSearch_329a"
+        }
+      }
+    }
+  ],
+  "checkpoint": {
+    "successCondition": {
+      "assertion": {
+        "type": "element_visible",
+        "targeting": {
+          "structural": {
+            "css": "#ctl00_gridMemberDetails"
+          }
+        }
+      },
+      "timeoutMs": 5000
+    },
+    "businessOutcomes": [
+      {
+        "code": "MEMBER_NOT_FOUND",
+        "description": "Database query returned no matching active records",
+        "detection": {
+          "type": "text_matches",
+          "targeting": {
+            "structural": {
+              "css": "#ctl00_lblStatusMessage"
+            }
+          },
+          "pattern": "No active member records found"
+        }
+      },
+      {
+        "code": "ACCOUNT_SUSPENDED",
+        "description": "Member account is locked in read-only suspended state",
+        "detection": {
+          "type": "text_matches",
+          "targeting": {
+            "structural": {
+              "css": "#ctl00_lblStatusMessage"
+            }
+          },
+          "pattern": "Member account suspended"
+        }
+      }
+    ]
+  }
+}
