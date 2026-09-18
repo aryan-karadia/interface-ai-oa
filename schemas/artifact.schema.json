@@ -1,0 +1,306 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://interface.ai/schemas/artifact.schema.json",
+  "title": "ArtifactSpec",
+  "description": "Schema definition for deterministic, reusable Computer-Use Automation Capabilities",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "description",
+    "createdAt",
+    "updatedAt",
+    "target",
+    "steps",
+    "checkpoint"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "enum": ["1.0.0"]
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "target": {
+      "$ref": "#/definitions/TargetAppSpec"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ParameterDefinition"
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/OutputDefinition"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/ExecutionStep"
+      }
+    },
+    "checkpoint": {
+      "$ref": "#/definitions/CheckpointSpec"
+    }
+  },
+  "definitions": {
+    "TargetAppSpec": {
+      "type": "object",
+      "required": ["appId", "entryUrl", "allowedDomains"],
+      "properties": {
+        "appId": { "type": "string" },
+        "entryUrl": { "type": "string", "format": "uri" },
+        "allowedDomains": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ParameterDefinition": {
+      "type": "object",
+      "required": ["type", "description"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean"]
+        },
+        "description": { "type": "string" },
+        "required": { "type": "boolean", "default": true },
+        "default": { "type": ["string", "number", "boolean"] },
+        "sensitive": { "type": "boolean", "default": false },
+        "validationRegex": { "type": "string" }
+      }
+    },
+    "OutputDefinition": {
+      "type": "object",
+      "required": ["type", "description", "sourceStepId", "selector"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "object"]
+        },
+        "description": { "type": "string" },
+        "sourceStepId": { "type": "string" },
+        "selector": { "$ref": "#/definitions/TargetingStrategy" },
+        "attribute": { "type": "string", "default": "innerText" }
+      }
+    },
+    "TargetingStrategy": {
+      "type": "object",
+      "properties": {
+        "semantic": {
+          "type": "object",
+          "properties": {
+            "role": { "type": "string" },
+            "name": { "type": "string" },
+            "exact": { "type": "boolean", "default": false }
+          }
+        },
+        "anchor": {
+          "type": "object",
+          "required": ["anchorText"],
+          "properties": {
+            "anchorText": { "type": "string" },
+            "direction": {
+              "type": "string",
+              "enum": ["right", "below", "parent_container"],
+              "default": "right"
+            },
+            "targetTag": { "type": "string", "default": "input" }
+          }
+        },
+        "structural": {
+          "type": "object",
+          "properties": {
+            "xpath": { "type": "string" },
+            "css": { "type": "string" }
+          }
+        },
+        "visualFallback": {
+          "type": "object",
+          "required": ["normalizedBounds"],
+          "properties": {
+            "normalizedBounds": {
+              "type": "object",
+              "required": ["x", "y", "width", "height"],
+              "properties": {
+                "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                "width": { "type": "number", "minimum": 0, "maximum": 1 },
+                "height": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            },
+            "referenceImageHash": { "type": "string" }
+          }
+        }
+      }
+    },
+    "StepAction": {
+      "type": "object",
+      "required": ["type"],
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "navigate" },
+            "url": { "type": "string" }
+          },
+          "required": ["type", "url"]
+        },
+        {
+          "properties": {
+            "type": { "const": "click" },
+            "button": { "type": "string", "enum": ["left", "right", "middle"], "default": "left" }
+          },
+          "required": ["type"]
+        },
+        {
+          "properties": {
+            "type": { "const": "fill" },
+            "valueTemplate": { "type": "string" }
+          },
+          "required": ["type", "valueTemplate"]
+        },
+        {
+          "properties": {
+            "type": { "const": "press" },
+            "key": { "type": "string" }
+          },
+          "required": ["type", "key"]
+        },
+        {
+          "properties": {
+            "type": { "const": "select" },
+            "value": { "type": "string" }
+          },
+          "required": ["type", "value"]
+        },
+        {
+          "properties": {
+            "type": { "const": "hover" }
+          },
+          "required": ["type"]
+        },
+        {
+          "properties": {
+            "type": { "const": "scroll" },
+            "direction": { "type": "string", "enum": ["up", "down"] },
+            "amount": { "type": "number" }
+          },
+          "required": ["type", "direction"]
+        },
+        {
+          "properties": {
+            "type": { "const": "wait" },
+            "timeoutMs": { "type": "number", "minimum": 1 }
+          },
+          "required": ["type", "timeoutMs"]
+        },
+        {
+          "properties": {
+            "type": { "const": "extract" },
+            "outputKey": { "type": "string" },
+            "attribute": { "type": "string", "default": "innerText" }
+          },
+          "required": ["type", "outputKey"]
+        }
+      ]
+    },
+    "StepRecoveryPolicy": {
+      "type": "object",
+      "properties": {
+        "maxRetries": { "type": "integer", "minimum": 0, "default": 2 },
+        "retryDelayMs": { "type": "integer", "minimum": 0, "default": 1000 },
+        "dismissOverlaysBeforeRetry": { "type": "boolean", "default": true }
+      }
+    },
+    "StepAssertion": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["element_visible", "text_contains", "url_matches"]
+        },
+        "targeting": { "$ref": "#/definitions/TargetingStrategy" },
+        "expectedValue": { "type": "string" },
+        "timeoutMs": { "type": "integer", "minimum": 1, "default": 5000 }
+      }
+    },
+    "ExecutionStep": {
+      "type": "object",
+      "required": ["id", "description", "action"],
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "action": { "$ref": "#/definitions/StepAction" },
+        "targeting": { "$ref": "#/definitions/TargetingStrategy" },
+        "recovery": { "$ref": "#/definitions/StepRecoveryPolicy" },
+        "assertions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StepAssertion" }
+        }
+      }
+    },
+    "BusinessOutcomeDefinition": {
+      "type": "object",
+      "required": ["code", "description", "detection"],
+      "properties": {
+        "code": { "type": "string" },
+        "description": { "type": "string" },
+        "detection": {
+          "type": "object",
+          "required": ["type", "targeting"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["element_visible", "text_matches", "url_matches"]
+            },
+            "targeting": { "$ref": "#/definitions/TargetingStrategy" },
+            "pattern": { "type": "string" }
+          }
+        }
+      }
+    },
+    "CheckpointSpec": {
+      "type": "object",
+      "required": ["successCondition"],
+      "properties": {
+        "successCondition": {
+          "type": "object",
+          "required": ["assertion"],
+          "properties": {
+            "assertion": { "$ref": "#/definitions/StepAssertion" },
+            "timeoutMs": { "type": "integer", "minimum": 1, "default": 10000 }
+          }
+        },
+        "businessOutcomes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/BusinessOutcomeDefinition" },
+          "default": []
+        }
+      }
+    }
+  }
+}

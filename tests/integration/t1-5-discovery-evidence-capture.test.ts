@@ -16,7 +16,18 @@ describe("T1.5: Live Discovery Run & Evidence Capture", () => {
   test("runs real discovery against live target and captures raw evidence", async () => {
     // Clean evidence directory before test
     if (existsSync(evidenceDir)) {
-      rmSync(evidenceDir, { recursive: true, force: true });
+      try {
+        const files = readdirSync(evidenceDir);
+        for (const file of files) {
+          try {
+            rmSync(resolve(evidenceDir, file), { recursive: true, force: true });
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
 
     const testPort = 3088;
