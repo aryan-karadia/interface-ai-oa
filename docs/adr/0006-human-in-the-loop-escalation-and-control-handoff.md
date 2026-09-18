@@ -1,7 +1,7 @@
 # ADR 0006: Human-in-the-Loop Escalation and Session Control Handoff
 
 ## Status
-Proposed
+Accepted (Formalized in [ADR-005](file:///Users/aryankaradia/projects/interface-ai-oa/docs/adr/ADR-005-control-transfer-and-human-escalation.md))
 
 ## Context
 Computer-use automation inevitably encounters situations where automation cannot or should not proceed autonomously:
