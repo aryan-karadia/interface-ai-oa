@@ -1,15 +1,16 @@
 {
   "schemaVersion": "1.0.0",
-  "id": "artifact_legacy-core-portal_1789769662360",
-  "name": "Automated Look up member 10042 and view account details",
-  "description": "Look up member 10042 and view account details",
-  "createdAt": "2026-09-18T22:14:22.360Z",
-  "updatedAt": "2026-09-18T22:14:22.360Z",
+  "id": "artifact_legacy-core-portal_1789769815745",
+  "name": "Automated Look up member 10042 in the Member Search portal and view account details",
+  "description": "Look up member 10042 in the Member Search portal and view account details",
+  "createdAt": "2026-09-18T22:16:55.745Z",
+  "updatedAt": "2026-09-18T22:16:55.745Z",
   "target": {
     "appId": "legacy-core-portal",
-    "entryUrl": "http://localhost:3088/portal/search",
+    "entryUrl": "http://localhost:3000/portal/search",
     "allowedDomains": [
-      "localhost"
+      "localhost",
+      "127.0.0.1"
     ]
   },
   "inputs": {},
@@ -20,7 +21,7 @@
       "description": "Navigate to initial target URL",
       "action": {
         "type": "navigate",
-        "url": "http://localhost:3088/portal/search"
+        "url": "http://localhost:3000/portal/search"
       },
       "recovery": {
         "maxRetries": 2,
@@ -30,19 +31,18 @@
     },
     {
       "id": "step_2_fill",
-      "description": "I see the Member ID input field adjacent to 'Member ID:'. Let me fill it with member ID 10042.",
+      "description": "I need to enter the member ID '10042' into the Member ID search field.",
       "action": {
         "type": "fill",
         "valueTemplate": "10042"
       },
       "targeting": {
+        "semantic": {
+          "role": "textbox"
+        },
         "anchor": {
           "anchorText": "Member ID:",
-          "direction": "right",
           "targetTag": "input"
-        },
-        "structural": {
-          "css": "#ctl00_MainContent_tabSearch_txtMemberId_8912"
         }
       },
       "recovery": {
@@ -53,16 +53,14 @@
     },
     {
       "id": "step_3_click",
-      "description": "The member ID is entered. Now I will click the Search button.",
+      "description": "Member ID 10042 is filled in the search input. Now I need to click the 'Search' button to retrieve the member's account details.",
       "action": {
         "type": "click"
       },
       "targeting": {
         "semantic": {
+          "role": "button",
           "name": "Search"
-        },
-        "structural": {
-          "css": "#ctl00_MainContent_btnSearch_329a"
         }
       },
       "recovery": {
@@ -76,7 +74,7 @@
     "successCondition": {
       "assertion": {
         "type": "url_matches",
-        "expectedValue": "http://localhost:3088/portal/search",
+        "expectedValue": "http://localhost:3000/portal/search",
         "timeoutMs": 5000
       },
       "timeoutMs": 5000
