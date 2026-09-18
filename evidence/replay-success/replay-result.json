@@ -2,20 +2,20 @@
   "status": "SUCCESS",
   "artifactId": "legacy.portal.lookup_member",
   "artifactVersion": "1.0.0",
-  "executionDurationMs": 128,
+  "executionDurationMs": 113,
   "stepsExecuted": 3,
   "outputs": {
     "memberName": "Alice M. Henderson"
   },
   "checkpointValidation": {
     "matchedAssertion": "element_visible: verified",
-    "timestamp": "2026-09-18T22:38:32.050Z"
+    "timestamp": "2026-09-18T22:40:01.958Z"
   },
   "telemetry": {
-    "runId": "replay_1789771111922_bsn8w",
-    "startedAt": "2026-09-18T22:38:31.922Z",
-    "completedAt": "2026-09-18T22:38:32.050Z",
-    "totalDurationMs": 128,
+    "runId": "replay_1789771201845_9lz5w",
+    "startedAt": "2026-09-18T22:40:01.845Z",
+    "completedAt": "2026-09-18T22:40:01.958Z",
+    "totalDurationMs": 113,
     "stepMetrics": [
       {
         "stepId": "step_navigate",
@@ -27,7 +27,7 @@
       {
         "stepId": "step_fill_member_id",
         "actionType": "fill",
-        "durationMs": 34,
+        "durationMs": 31,
         "targetingTierUsed": "anchor",
         "retries": 0,
         "success": true
@@ -35,7 +35,7 @@
       {
         "stepId": "step_click_search",
         "actionType": "click",
-        "durationMs": 51,
+        "durationMs": 39,
         "targetingTierUsed": "semantic",
         "retries": 0,
         "success": true
