@@ -4,6 +4,7 @@ import type { ArtifactSpec, ExecutionStep, StepAction } from "../artifact/artifa
 import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
 import { Redactor } from "../guardrail/redactor";
+import type { StructuredLogger } from "../logging/structured-logger";
 import type { Surface } from "../surface/surface.interface";
 import { LocatorEngine } from "./locator-engine";
 import type {
@@ -29,6 +30,7 @@ export class ReplayExecutor {
     private surface: Surface,
     private guardrail: IGuardrailService,
     private escalation?: SessionCoordinator,
+    private logger?: StructuredLogger,
   ) {}
 
   async execute(artifact: ArtifactSpec, options: ReplayOptions = {}): Promise<ReplayResult> {
@@ -39,6 +41,15 @@ export class ReplayExecutor {
     const extractedOutputs: Record<string, unknown> = {};
 
     const finish = async (result: ReplayResult): Promise<ReplayResult> => {
+      this.logger?.info(
+        "replay",
+        "EXECUTE_FINISH",
+        `Replay finished with status ${result.status}`,
+        result.status === "SUCCESS"
+          ? "Completed successfully"
+          : (result as unknown as { reason?: string }).reason,
+        { runId, status: result.status },
+      );
       if (options.evidenceDir) {
         await this.flushEvidence(options.evidenceDir, runId, artifact, resolvedInputs, result);
       }
@@ -114,13 +125,47 @@ export class ReplayExecutor {
       }
     }
 
+    this.logger?.info(
+      "replay",
+      "EXECUTE_START",
+      `Starting deterministic replay for artifact "${artifact.name}" (ID: ${artifact.id})`,
+      "Replaying artifact steps deterministically without LLM in decision loop",
+      {
+        runId,
+        artifactId: artifact.id,
+        artifactVersion: artifact.schemaVersion,
+        inputs: resolvedInputs,
+      },
+    );
+
     try {
       // 2. Execute Steps Sequentially
       for (let i = 0; i < artifact.steps.length; i++) {
         const step = artifact.steps[i];
+        this.logger?.info(
+          "replay",
+          "STEP_EXECUTE",
+          `Replaying step "${step.id}": ${step.action.type}`,
+          step.description,
+          { runId, stepId: step.id, stepIndex: i + 1, actionType: step.action.type },
+        );
         const stepResult = await this.executeStep(artifact, step, resolvedInputs, stepMetrics);
 
-        if (stepResult.status !== "STEP_SUCCESS") {
+        if (stepResult.status === "STEP_SUCCESS") {
+          this.logger?.info(
+            "replay",
+            "STEP_SUCCESS",
+            `Step "${step.id}" executed successfully`,
+            undefined,
+            {
+              runId,
+              stepId: step.id,
+              stepIndex: i + 1,
+              targetingTier: stepMetrics[stepMetrics.length - 1]?.targetingTierUsed,
+              retries: stepResult.retries,
+            },
+          );
+        } else {
           if (stepResult.status === "GUARDRAIL_VIOLATION") {
             return finish(
               this.createHardFailure(
@@ -225,6 +270,18 @@ export class ReplayExecutor {
 
       // 3. Evaluate Checkpoint: Distinguish Business Outcomes vs Success
       const checkpointResult = await this.evaluateCheckpoint(artifact, resolvedInputs);
+
+      this.logger?.info(
+        "replay",
+        "CHECKPOINT_EVALUATED",
+        `Checkpoint evaluated: ${checkpointResult.type}`,
+        checkpointResult.type === "SUCCESS"
+          ? `Matched assertion ${checkpointResult.matchedAssertion} on successCondition`
+          : checkpointResult.type === "BUSINESS_OUTCOME"
+            ? `Matched business outcome "${checkpointResult.outcomeCode}": ${checkpointResult.description}`
+            : "Neither successCondition nor registered business outcome satisfied",
+        { runId, outcomeType: checkpointResult.type },
+      );
 
       if (checkpointResult.type === "BUSINESS_OUTCOME") {
         return finish({
@@ -354,6 +411,10 @@ export class ReplayExecutor {
             Buffer.from(screenshotBase64, "base64"),
           );
         }
+      }
+
+      if (this.logger) {
+        this.logger.writeToFile(join(evidenceDir, "structured.log.jsonl"));
       }
     } catch {
       // Best-effort evidence capture

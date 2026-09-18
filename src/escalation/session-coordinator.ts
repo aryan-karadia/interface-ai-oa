@@ -1,3 +1,4 @@
+import type { StructuredLogger } from "../logging/structured-logger";
 import type { Surface } from "../surface/surface.interface";
 import type {
   ControlOwner,
@@ -37,7 +38,10 @@ export class SessionCoordinator {
     },
   ];
 
-  constructor(private surface: Surface) {}
+  constructor(
+    private surface: Surface,
+    private logger?: StructuredLogger,
+  ) {}
 
   getState(): ControlOwner {
     return this.currentState;
@@ -65,6 +69,13 @@ export class SessionCoordinator {
       timestamp: new Date().toISOString(),
       reason,
     });
+    this.logger?.info(
+      "escalation",
+      "CONTROL_TRANSFERRED",
+      `Session ownership transitioned from ${fromState} to ${newState}`,
+      reason,
+      { fromState, toState: newState, actor },
+    );
   }
 
   /**
@@ -109,6 +120,14 @@ export class SessionCoordinator {
     };
 
     this.activeRequest = request;
+    this.logger?.warn("escalation", "ESCALATION_REQUESTED", params.message, params.reason, {
+      requestId: request.id,
+      goal: params.goal,
+      stepId: params.stepId,
+      stepIndex: params.stepIndex,
+      currentUrl: request.currentUrl,
+      suggestedAction: params.suggestedAction,
+    });
     this.transitionTo("AWAITING_TAKEOVER", "automation", params.reason);
 
     // Pause surface automation
@@ -139,6 +158,14 @@ export class SessionCoordinator {
       "HANDOFF_RECONCILIATION",
       resolution.resolvedBy,
       resolution.notes ?? "Operator initiated control transfer",
+    );
+
+    this.logger?.info(
+      "escalation",
+      "CONTROL_RECLAIMED",
+      `Control returned by ${resolution.resolvedBy}: ${resolution.notes ?? "Intervention complete"}`,
+      `Resolved by ${resolution.resolvedBy}`,
+      { requestId: resolution.requestId, resolvedBy: resolution.resolvedBy },
     );
 
     // Resume surface and verify state

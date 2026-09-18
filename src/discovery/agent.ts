@@ -10,6 +10,7 @@ import {
 import type { SessionCoordinator } from "../escalation/session-coordinator";
 import type { IGuardrailService } from "../guardrail/guardrail.interface";
 import { Redactor } from "../guardrail/redactor";
+import type { StructuredLogger } from "../logging/structured-logger";
 import type { Surface } from "../surface/surface.interface";
 import type { DiscoveryContext, LLMClient } from "./llm-client.interface";
 
@@ -47,6 +48,7 @@ export class DiscoveryAgent {
     private llmClient: LLMClient,
     private guardrail: IGuardrailService,
     private coordinator?: SessionCoordinator,
+    private logger?: StructuredLogger,
   ) {}
 
   async discover(options: DiscoveryOptions): Promise<DiscoveryRunResult> {
@@ -99,6 +101,14 @@ export class DiscoveryAgent {
       // 1. Observe (Perceive Surface)
       const snapshot = await this.surface.perceive();
 
+      this.logger?.info(
+        "discovery",
+        "OBSERVE",
+        `Captured page snapshot at ${snapshot.url}`,
+        "Perceived current DOM state and accessibility tree",
+        { step: currentStep, url: snapshot.url, title: snapshot.title },
+      );
+
       // Capture Step Evidence: DOM snapshot and Screenshot
       if (options.evidenceDir) {
         const domPath = join(options.evidenceDir, `dom-snapshot-step-${currentStep}.json`);
@@ -121,6 +131,19 @@ export class DiscoveryAgent {
       // 2. Decide (LLM generation)
       const decision = await this.llmClient.generateDecision(snapshot, context);
 
+      this.logger?.info(
+        "discovery",
+        "DECIDE",
+        `LLM proposed action: ${decision.action?.type ?? (decision.goalMet ? "GOAL_MET" : "NONE")}`,
+        decision.thought,
+        {
+          step: currentStep,
+          goalMet: decision.goalMet,
+          action: decision.action,
+          targeting: decision.targeting,
+        },
+      );
+
       transcript.push({
         step: currentStep,
         thought: decision.thought,
@@ -130,6 +153,13 @@ export class DiscoveryAgent {
       });
 
       if (decision.goalMet) {
+        this.logger?.info(
+          "discovery",
+          "GOAL_MET",
+          "Discovery goal declared met by planner",
+          decision.thought,
+          { step: currentStep, goal: options.goal },
+        );
         // Synthesize canonical artifact via decoupled compiler
         const artifact = compileDiscoveryEvidence({
           appId: options.appId,
@@ -239,6 +269,13 @@ export class DiscoveryAgent {
 
       // 4. Act
       const actResult = await this.surface.act(decision.action, decision.targeting);
+      this.logger?.info(
+        "discovery",
+        "ACT",
+        `Executed ${decision.action.type} action on surface`,
+        actResult.success ? "Action succeeded" : actResult.error,
+        { step: currentStep, success: actResult.success, durationMs: actResult.durationMs },
+      );
       if (!actResult.success) {
         this.flushEvidence(options.evidenceDir, transcript);
         return {
@@ -298,6 +335,9 @@ export class DiscoveryAgent {
         join(evidenceDir, "synthesized-artifact.json"),
         JSON.stringify(sanitizedArtifact, null, 2),
       );
+    }
+    if (this.logger) {
+      this.logger.writeToFile(join(evidenceDir, "structured.log.jsonl"));
     }
   }
 }
